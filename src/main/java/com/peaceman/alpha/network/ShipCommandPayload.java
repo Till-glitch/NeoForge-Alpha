@@ -3,6 +3,7 @@ package com.peaceman.alpha.network;
 import com.peaceman.alpha.Alpha;
 import com.peaceman.alpha.block.SpaceshipControlBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -25,20 +26,43 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
-
+    
     public static void handleData(final ShipCommandPayload data, final IPayloadContext context) {
         context.enqueueWork(() -> {
-            var level = context.player().level();
+            var player = context.player();
+            var level = player.level();
             var pos = data.pos();
+            int dist = data.value();
 
             if (level.getBlockState(pos).is(Alpha.SPACESHIP_CONTROL.get())) {
-                // Hier leiten wir die Befehle an den Block weiter!
+
                 if (data.command().equals("SCAN")) {
                     SpaceshipControlBlock.createShipInstance(level, pos);
-                } else if (data.command().equals("MOVE_UP")) {
-                    SpaceshipControlBlock.moveShipInstance(level, pos, data.value());
-                } else if (data.command().equals("MOVE_DOWN")){
-                    SpaceshipControlBlock.moveShipInstance(level, pos, -data.value());
+                }
+                else if (data.command().equals("MOVE_UP")) {
+                    SpaceshipControlBlock.moveShipInstance(level, pos, 0, dist, 0);
+                }
+                else if (data.command().equals("MOVE_DOWN")) {
+                    SpaceshipControlBlock.moveShipInstance(level, pos, 0, -dist, 0);
+                }
+                else {
+                    // Die Richtung, in die der Spieler schaut (Norden, Süden, Osten, Westen)
+                    Direction forward = player.getDirection();
+                    // Die Richtung, die rechts vom Spieler liegt (Uhrzeigersinn)
+                    Direction right = forward.getClockWise();
+
+                    int dx = 0, dy = 0, dz = 0;
+
+                    // Wir multiplizieren die Blickrichtung (gibt 1, 0 oder -1 zurück) mit der Distanz
+                    switch (data.command()) {
+                        case "MOVE_FORWARD" -> { dx = forward.getStepX() * dist; dz = forward.getStepZ() * dist; }
+                        case "MOVE_BACKWARD" -> { dx = -forward.getStepX() * dist; dz = -forward.getStepZ() * dist; }
+                        case "MOVE_RIGHT" -> { dx = right.getStepX() * dist; dz = right.getStepZ() * dist; }
+                        case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
+                    }
+
+                    // Die universelle Methode mit unseren berechneten Werten aufrufen!
+                    SpaceshipControlBlock.moveShipInstance(level, pos, dx, dy, dz);
                 }
             }
         });

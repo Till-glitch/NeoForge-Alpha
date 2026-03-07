@@ -2,12 +2,16 @@ package com.peaceman.alpha.block;
 
 import com.peaceman.alpha.client.screen.SpaceshipControlScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 
 import java.util.*;
@@ -32,34 +36,6 @@ public class SpaceshipControlBlock extends Block {
     private void openScreen(BlockPos pos) {
         net.minecraft.client.Minecraft.getInstance().setScreen(new SpaceshipControlScreen(pos));
     }
-    public static void moveShip(Level level, BlockPos startPos, int distance) {
-        // 1. Alle Blöcke finden
-        Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
-        Map<BlockPos, BlockState> snapshot = new HashMap<>();
-
-        // 2. Zustand aller Blöcke speichern (Schnappschuss)
-        for (BlockPos pos : shipBlocks) {
-            snapshot.put(pos, level.getBlockState(pos));
-        }
-
-        // 3. Alle alten Blöcke löschen (bevor wir neue setzen, um Überschneidungen zu vermeiden!)
-        for (BlockPos pos : shipBlocks) {
-            // Flag 18 verhindert, dass z.B. Sand sofort fällt oder Wasser fließt, während das Schiff morpht
-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
-        }
-
-        // 4. Das Schiff an der neuen Position aufbauen!
-        for (Map.Entry<BlockPos, BlockState> entry : snapshot.entrySet()) {
-            BlockPos oldPos = entry.getKey();
-            BlockState state = entry.getValue();
-
-            // Rechnet die Distanz auf der Y-Achse (nach oben) drauf
-            BlockPos newPos = oldPos.above(distance);
-
-            // Block platzieren (Flag 3 ist der Standard-Wert für normale Block-Updates)
-            level.setBlock(newPos, state, 3);
-        }
-    }
 
     // Unser "Gedächtnis" für alle aktiven Schiffe auf dem Server
     public static final Map<BlockPos, Set<BlockPos>> ACTIVE_SHIPS = new HashMap<>();
@@ -72,8 +48,8 @@ public class SpaceshipControlBlock extends Block {
     }
 
     // Wird aufgerufen, wenn man fliegen will
-    public static void moveShipInstance(Level level, BlockPos startPos, int distance) {
-        // 1. Die Instanz aus dem Gedächtnis laden
+    // Wir tauschen "int distance" gegen "int dx, int dy, int dz" aus
+    public static void moveShipInstance(Level level, BlockPos startPos, int dx, int dy, int dz) {
         Set<BlockPos> shipBlocks = ACTIVE_SHIPS.get(startPos);
 
         if (shipBlocks == null || shipBlocks.isEmpty()) {
@@ -81,22 +57,62 @@ public class SpaceshipControlBlock extends Block {
             return;
         }
 
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+
+        for (BlockPos pos : shipBlocks) {
+            if (pos.getX() < minX) minX = pos.getX();
+            if (pos.getY() < minY) minY = pos.getY();
+            if (pos.getZ() < minZ) minZ = pos.getZ();
+            if (pos.getX() > maxX) maxX = pos.getX();
+            if (pos.getY() > maxY) maxY = pos.getY();
+            if (pos.getZ() > maxZ) maxZ = pos.getZ();
+        }
+
+        AABB shipBounds = new AABB(minX, minY, minZ, maxX + 1, maxY + 2, maxZ + 1);
+
+        List<Entity> entitiesToMove = level.getEntities(null, shipBounds).stream().filter(entity -> {
+            BlockPos entityPos = entity.blockPosition();
+            return shipBlocks.contains(entityPos) || shipBlocks.contains(entityPos.below());
+        }).toList();
+
         Map<BlockPos, BlockState> snapshot = new HashMap<>();
         for (BlockPos pos : shipBlocks) snapshot.put(pos, level.getBlockState(pos));
 
         for (BlockPos pos : shipBlocks) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
 
-        // Die neuen Positionen merken, damit wir die Instanz im Gedächtnis aktualisieren können!
         Set<BlockPos> newShipBlocks = new HashSet<>();
-        BlockPos newStartPos = startPos.above(distance); // Der Kontrollblock bewegt sich ja auch mit
+
+        // HIER NEU: startPos.offset verschiebt die Koordinate in alle Richtungen
+        BlockPos newStartPos = startPos.offset(dx, dy, dz);
 
         for (Map.Entry<BlockPos, BlockState> entry : snapshot.entrySet()) {
-            BlockPos newPos = entry.getKey().above(distance);
+            // HIER NEU: Offset auf jeden Block anwenden
+            BlockPos newPos = entry.getKey().offset(dx, dy, dz);
             level.setBlock(newPos, entry.getValue(), 3);
             newShipBlocks.add(newPos);
         }
 
-        // 2. Das Gedächtnis aktualisieren (alte Position löschen, neue speichern)
+        // 6. DAS WICHTIGSTE: Die Passagiere mitnehmen!
+        for (Entity entity : entitiesToMove) {
+            double newX = entity.getX() + dx;
+            double newY = entity.getY() + dy;
+            double newZ = entity.getZ() + dz;
+
+            if (entity instanceof ServerPlayer serverPlayer) {
+                // Bei echten Spielern MÜSSEN wir die offizielle Teleport-Methode nutzen,
+                // damit der Server dem Client zwingend sagt: "Du bist jetzt hier!"
+                serverPlayer.teleportTo((ServerLevel) level, newX, newY, newZ, serverPlayer.getYRot(), serverPlayer.getXRot());
+            } else {
+                // Für Items, Tiere, Loren etc. reicht das normale setPos
+                entity.setPos(newX, newY, newZ);
+                entity.hurtMarked = true;
+            }
+
+            // Verhindert weiterhin Fallschaden für alle
+            entity.resetFallDistance();
+        }
+
         ACTIVE_SHIPS.remove(startPos);
         ACTIVE_SHIPS.put(newStartPos, newShipBlocks);
     }
