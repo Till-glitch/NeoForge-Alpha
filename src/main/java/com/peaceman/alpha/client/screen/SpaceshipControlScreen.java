@@ -6,12 +6,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class SpaceshipControlScreen extends Screen {
 
-    private final net.minecraft.core.BlockPos blockPos;
+    private net.minecraft.core.BlockPos blockPos;
     private EditBox distanceInput; // Unser neues Textfeld
 
     public SpaceshipControlScreen(net.minecraft.core.BlockPos pos) {
@@ -59,26 +60,69 @@ public class SpaceshipControlScreen extends Screen {
             catch (NumberFormatException e) { return 1; } // Standard ist 1, falls Unsinn drinsteht
         };
 
-        // Vorwärts Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Vorwärts (W)"), button -> {
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_FORWARD", getDist.get()));
+        // HOCH Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Hoch"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_UP", dist));
+
+            // HIER NEU: Das Menü rechnet die neue Position aus und merkt sie sich!
+            this.blockPos = this.blockPos.above(dist);
+
         }).bounds(this.width / 2 - 50, this.height / 2 + 10, 100, 20).build());
 
-        // Rückwärts Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Rückwärts (S)"), button -> {
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_BACKWARD", getDist.get()));
+        // RUNTER Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Runter"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_DOWN", dist));
+            this.blockPos = this.blockPos.below(dist); // Neue Position merken!
         }).bounds(this.width / 2 - 50, this.height / 2 + 35, 100, 20).build());
 
-        // Links Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Links (A)"), button -> {
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_LEFT", getDist.get()));
+
+        // VORWÄRTS Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Vorwärts (W)"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_FORWARD", dist));
+
+            // Für Vorwärts/Rückwärts/Links/Rechts müssen wir wissen, wo der Spieler hinguckt
+            Direction forward = this.minecraft.player.getDirection();
+
+            // .relative() verschiebt die Koordinate in eine bestimmte Himmelsrichtung
+            this.blockPos = this.blockPos.relative(forward, dist);
+
+        }).bounds(this.width / 2 - 155, this.height / 2 + 10, 100, 20).build());
+
+        // RÜCKWÄRTS Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Rückwärts (S)"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_BACKWARD", dist));
+
+            Direction forward = this.minecraft.player.getDirection();
+            // getOpposite() dreht die Richtung genau um (also nach hinten)
+            this.blockPos = this.blockPos.relative(forward.getOpposite(), dist);
+
         }).bounds(this.width / 2 - 155, this.height / 2 + 35, 100, 20).build());
 
-        // Rechts Knopf
+        // LINKS Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Links (A)"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_LEFT", dist));
+
+            Direction forward = this.minecraft.player.getDirection();
+            // getCounterClockWise() dreht die Richtung nach links
+            this.blockPos = this.blockPos.relative(forward.getCounterClockWise(), dist);
+
+        }).bounds(this.width / 2 + 55, this.height / 2 + 10, 100, 20).build());
+
+        // RECHTS Knopf
         this.addRenderableWidget(Button.builder(Component.literal("Rechts (D)"), button -> {
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_RIGHT", getDist.get()));
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_RIGHT", dist));
+
+            Direction forward = this.minecraft.player.getDirection();
+            // getClockWise() dreht die Richtung nach rechts
+            this.blockPos = this.blockPos.relative(forward.getClockWise(), dist);
+
         }).bounds(this.width / 2 + 55, this.height / 2 + 35, 100, 20).build());
-        // (Dein Highlight-Button kann z.B. bei y = this.height / 2 + 35 bleiben)
     }
 
     @Override
