@@ -1,7 +1,8 @@
 package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
-import com.peaceman.alpha.block.SpaceshipControlBlock;
+import com.peaceman.alpha.registry.ModBlocks;
+import com.peaceman.alpha.ship.SpaceshipManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -26,7 +27,7 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
-    
+
     public static void handleData(final ShipCommandPayload data, final IPayloadContext context) {
         context.enqueueWork(() -> {
             var player = context.player();
@@ -34,16 +35,16 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
             var pos = data.pos();
             int dist = data.value();
 
-            if (level.getBlockState(pos).is(Alpha.SPACESHIP_CONTROL.get())) {
+            if (level.getBlockState(pos).is(ModBlocks.SPACESHIP_CONTROL.get())) {
 
                 if (data.command().equals("SCAN")) {
-                    SpaceshipControlBlock.createShipInstance(level, pos);
+                    SpaceshipManager.createShipInstance(level, pos);
                 }
                 else if (data.command().equals("MOVE_UP")) {
-                    SpaceshipControlBlock.moveShipInstance(level, pos, 0, dist, 0);
+                    SpaceshipManager.moveShipInstance(level, pos, 0, dist, 0);
                 }
                 else if (data.command().equals("MOVE_DOWN")) {
-                    SpaceshipControlBlock.moveShipInstance(level, pos, 0, -dist, 0);
+                    SpaceshipManager.moveShipInstance(level, pos, 0, -dist, 0);
                 }
                 else {
                     // Die Richtung, in die der Spieler schaut (Norden, Süden, Osten, Westen)
@@ -62,7 +63,7 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
                     }
 
                     // Die universelle Methode mit unseren berechneten Werten aufrufen!
-                    SpaceshipControlBlock.moveShipInstance(level, pos, dx, dy, dz);
+                    SpaceshipManager.moveShipInstance(level, pos, dx, dy, dz);
                 }
             }
         });

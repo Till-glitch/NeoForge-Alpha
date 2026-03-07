@@ -1,7 +1,7 @@
 package com.peaceman.alpha.client.screen;
 
-import com.peaceman.alpha.block.SpaceshipControlBlock;
 import com.peaceman.alpha.network.ShipCommandPayload;
+import com.peaceman.alpha.ship.SpaceshipManager;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -42,7 +42,7 @@ public class SpaceshipControlScreen extends Screen {
             if (com.peaceman.alpha.client.ShipHighlightRenderer.isHighlightActive) {
                 // 2. Wenn AN: Wir nutzen deinen Scanner-Code, aber diesmal für den Client!
                 com.peaceman.alpha.client.ShipHighlightRenderer.shipBlocks =
-                        SpaceshipControlBlock.scanSpaceship(this.minecraft.level, this.blockPos);
+                        SpaceshipManager.scanSpaceship(this.minecraft.level, this.blockPos);
             } else {
                 // 3. Wenn AUS: Liste leeren, damit keine Partikel mehr spawnen
                 com.peaceman.alpha.client.ShipHighlightRenderer.shipBlocks.clear();
