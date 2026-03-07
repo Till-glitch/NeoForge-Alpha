@@ -1,7 +1,7 @@
 package com.peaceman.alpha;
 
 import com.peaceman.alpha.block.SpaceshipControlBlock;
-import com.peaceman.alpha.network.ScanShipPayload;
+import com.peaceman.alpha.network.ShipCommandPayload;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.slf4j.Logger;
 
@@ -168,9 +168,9 @@ public class Alpha {
 
         // Registriert unser Paket so, dass es vom Client ZUM Server geschickt wird
         registrar.playToServer(
-                ScanShipPayload.TYPE,
-                ScanShipPayload.STREAM_CODEC,
-                ScanShipPayload::handleData
+                ShipCommandPayload.TYPE,
+                ShipCommandPayload.STREAM_CODEC,
+                ShipCommandPayload::handleData
         );
     }
 }

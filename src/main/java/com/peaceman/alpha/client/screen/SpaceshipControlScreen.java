@@ -1,62 +1,75 @@
 package com.peaceman.alpha.client.screen;
 
-import com.peaceman.alpha.block.SpaceshipControlBlock;
-import com.peaceman.alpha.network.ScanShipPayload;
+import com.peaceman.alpha.network.ShipCommandPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public class SpaceshipControlScreen extends Screen {
-    // Neue Variable, um sich die Position zu merken
-    private final net.minecraft.core.BlockPos blockPos;
 
-    // Der Konstruktor erwartet jetzt die Position
+    private final net.minecraft.core.BlockPos blockPos;
+    private EditBox distanceInput; // Unser neues Textfeld
+
     public SpaceshipControlScreen(net.minecraft.core.BlockPos pos) {
         super(Component.literal("Raumschiff Steuerung"));
         this.blockPos = pos;
     }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
     @Override
     protected void init() {
         super.init();
+// 1. Der SCAN Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("1. Schiff scannen"), button -> {
+            // Sendet den Befehl "SCAN" (Zahl ist hier egal, also 0)
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "SCAN", 0));
+        }).bounds(this.width / 2 - 50, this.height / 2 - 40, 100, 20).build());
 
-        // DEIN ALTER KNOPF ("Start Engine")
-        this.addRenderableWidget(Button.builder(Component.literal("Start Engine"), button -> {
-            net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                    new com.peaceman.alpha.network.ScanShipPayload(this.blockPos)
-            );
-            this.minecraft.setScreen(null);
-        }).bounds(this.width / 2 - 50, this.height / 2 - 20, 100, 20).build());
+        // 2. Das Textfeld für die Distanz (etwas nach unten verschoben)
+        this.distanceInput = new EditBox(this.font, this.width / 2 - 50, this.height / 2 - 15, 100, 20, Component.literal("Distanz"));
+        this.distanceInput.setValue("5");
+        this.addRenderableWidget(this.distanceInput);
 
-        // NEUER KNOPF: Markierung An/Aus
-        // Y-Position ist etwas tiefer (this.height / 2 + 5), damit sie nicht überlappen
-        this.addRenderableWidget(Button.builder(Component.literal("Markierung An/Aus"), button -> {
-
-            // 1. Zustand umkehren (An wird zu Aus, Aus wird zu An)
-            com.peaceman.alpha.client.ShipHighlightRenderer.isHighlightActive = !com.peaceman.alpha.client.ShipHighlightRenderer.isHighlightActive;
-
-            if (com.peaceman.alpha.client.ShipHighlightRenderer.isHighlightActive) {
-                // 2. Wenn AN: Wir nutzen deinen Scanner-Code, aber diesmal für den Client!
-                com.peaceman.alpha.client.ShipHighlightRenderer.shipBlocks =
-                        SpaceshipControlBlock.scanSpaceship(this.minecraft.level, this.blockPos);
-            } else {
-                // 3. Wenn AUS: Liste leeren, damit keine Partikel mehr spawnen
-                com.peaceman.alpha.client.ShipHighlightRenderer.shipBlocks.clear();
+        // 3. Der BEWEGEN Knopf
+        this.addRenderableWidget(Button.builder(Component.literal("Flug: Hoch"), button -> {
+            try {
+                int distance = Integer.parseInt(this.distanceInput.getValue());
+                // Sendet den Befehl "MOVE_UP" mit der eingegebenen Distanz
+                PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_UP", distance));
+                this.minecraft.setScreen(null);
+            } catch (NumberFormatException e) {
+                // Ignorieren, wenn keine Zahl eingegeben wurde
             }
+        }).bounds(this.width / 2 - 50, this.height / 2 + 10, 100, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Flug: Runter"), button -> {
+            try {
+                int distance = Integer.parseInt(this.distanceInput.getValue());
+                // Sendet den Befehl "MOVE_UP" mit der eingegebenen Distanz
+                PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_DOWN", distance));
+                this.minecraft.setScreen(null);
+            } catch (NumberFormatException e) {
+                // Ignorieren, wenn keine Zahl eingegeben wurde
+            }
+        }).bounds(this.width / 2 - 50, this.height / 2 + 30, 100, 20).build());
 
-        }).bounds(this.width / 2 - 60, this.height / 2 + 5, 120, 20).build());
+        // (Dein Highlight-Button kann z.B. bei y = this.height / 2 + 35 bleiben)
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Macht den normalen Minecraft-Hintergrund leicht dunkel
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-
-        // Zeichnet einen Titeltext oben in die Mitte
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
 
-        // Zeichnet die Buttons
+        // Kleiner Hilfstext über dem Textfeld
+        guiGraphics.drawCenteredString(this.font, "Wie viele Blöcke nach oben?", this.width / 2, this.height / 2 - 55, 0xA0A0A0);
+
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 }
