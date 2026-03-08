@@ -60,29 +60,6 @@ public class SpaceshipManager {
         return shipBlocks;
     }
 
-    public static void createShipInstance(Level level, BlockPos startPos) {
-        // Altes Schiff an dieser Position löschen, falls wir neu scannen
-        Spaceship oldShip = getShipAt(startPos);
-        if (oldShip != null) ACTIVE_SHIPS.remove(oldShip.getId());
-
-        Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
-
-        // Neues Schiffsobjekt erstellen und speichern
-        Spaceship newShip = new Spaceship(startPos, shipBlocks);
-        ACTIVE_SHIPS.put(newShip.getId(), newShip);
-
-        System.out.println("Schiff instanziiert! UUID: " + newShip.getId() + " | Blöcke: " + shipBlocks.size());
-
-        // --- NEU: Den Rucksack des Blocks mit der UUID befüllen! ---
-        if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity blockEntity) {
-            blockEntity.setShipId(newShip.getId());
-        }
-
-        if (level instanceof ServerLevel serverLevel) {
-            ShipSavedData.get(serverLevel).setDirty();
-        }
-    }
-
     // Wir übergeben jetzt die UUID anstatt der Startposition!
     public static void moveShipInstance(Level level, UUID shipId, int dx, int dy, int dz) {
         // Wir können das Schiff jetzt blitzschnell und direkt aus der Liste fischen
@@ -175,4 +152,79 @@ public class SpaceshipManager {
         }
     }
 
+    // Speichert die aktuelle Position als neues Home
+    public static void saveHome(Level level, UUID shipId, String homeName) {
+        Spaceship ship = ACTIVE_SHIPS.get(shipId);
+        if (ship != null) {
+            // Speichert den Namen und die aktuelle Position des Kontrollblocks
+            ship.addHome(homeName, ship.getControllerPos());
+            System.out.println("Wegpunkt '" + homeName + "' erfolgreich gespeichert!");
+
+            if (level instanceof ServerLevel serverLevel) {
+                ShipSavedData.get(serverLevel).setDirty();
+            }
+        }
+    }
+
+    // Teleportiert das Schiff zu einem gespeicherten Home
+    public static void teleportToHome(Level level, UUID shipId, String homeName) {
+        Spaceship ship = ACTIVE_SHIPS.get(shipId);
+
+        if (ship != null && ship.getHomes().containsKey(homeName)) {
+            BlockPos targetPos = ship.getHomes().get(homeName);
+            BlockPos currentPos = ship.getControllerPos();
+
+            // Rechnet die nötige Verschiebung aus!
+            int dx = targetPos.getX() - currentPos.getX();
+            int dy = targetPos.getY() - currentPos.getY();
+            int dz = targetPos.getZ() - currentPos.getZ();
+
+            // Wir nutzen unsere geniale Bewegungs-Methode für den Teleport!
+            moveShipInstance(level, shipId, dx, dy, dz);
+            System.out.println("Schiff erfolgreich zu '" + homeName + "' teleportiert!");
+        } else {
+            System.out.println("Fehler: Wegpunkt '" + homeName + "' nicht gefunden!");
+        }
+    }
+
+    // 1. SCHIFF INITIALISIEREN (Macht nur etwas, wenn der Block noch leer ist)
+    public static void createShip(Level level, BlockPos startPos) {
+        if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
+
+            // Schutz: Wenn der Rucksack schon eine UUID hat, brechen wir ab!
+            if (be.getShipId() != null && ACTIVE_SHIPS.containsKey(be.getShipId())) {
+                System.out.println("Fehler: Block ist bereits mit einem Schiff verknüpft!");
+                return;
+            }
+
+            Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
+            Spaceship newShip = new Spaceship(startPos, shipBlocks);
+            ACTIVE_SHIPS.put(newShip.getId(), newShip);
+            be.setShipId(newShip.getId()); // Rucksack füllen
+
+            System.out.println("Neues Schiff erstellt! UUID: " + newShip.getId());
+            if (level instanceof ServerLevel serverLevel) ShipSavedData.get(serverLevel).setDirty();
+        }
+    }
+
+    // 2. STRUKTUR AKTUALISIEREN (Lässt UUID und Homes in Ruhe, updatet nur die Blöcke)
+    public static void updateShipBlocks(Level level, BlockPos startPos, UUID shipId) {
+        Spaceship ship = ACTIVE_SHIPS.get(shipId);
+        if (ship != null) {
+            Set<BlockPos> newBlocks = scanSpaceship(level, startPos);
+            ship.setBlocks(newBlocks);
+            System.out.println("Struktur aktualisiert! Neue Block-Anzahl: " + newBlocks.size());
+            if (level instanceof ServerLevel serverLevel) ShipSavedData.get(serverLevel).setDirty();
+        }
+    }
+
+    // 3. SCHIFF MANUELL AUFLÖSEN (Löscht das Schiff und leert den Block)
+    public static void deleteShipFromBlock(Level level, BlockPos startPos, UUID shipId) {
+        removeShipInstance(level, shipId); // Ruft unsere bestehende Lösch-Methode auf
+
+        // Leert den Rucksack des Blocks, damit man ihn neu initialisieren kann
+        if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
+            be.setShipId(null);
+        }
+    }
 }

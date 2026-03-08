@@ -2,8 +2,6 @@ package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
 import com.peaceman.alpha.block.SpaceshipControlBlockEntity;
-import com.peaceman.alpha.registry.ModBlocks;
-import com.peaceman.alpha.ship.SpaceshipManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -15,14 +13,16 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-public record ShipCommandPayload(BlockPos pos, String command, int value) implements CustomPacketPayload {
+// NEU: Wir haben "String textData" hinzugefügt!
+public record ShipCommandPayload(BlockPos pos, String command, int value, String textData) implements CustomPacketPayload {
 
     public static final Type<ShipCommandPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Alpha.MODID, "ship_command"));
 
     public static final StreamCodec<FriendlyByteBuf, ShipCommandPayload> STREAM_CODEC = StreamCodec.composite(
             BlockPos.STREAM_CODEC, ShipCommandPayload::pos,
-            ByteBufCodecs.STRING_UTF8, ShipCommandPayload::command, // Überträgt unseren Befehl (z.B. "SCAN" oder "MOVE_UP")
+            ByteBufCodecs.STRING_UTF8, ShipCommandPayload::command,
             ByteBufCodecs.INT, ShipCommandPayload::value,
+            ByteBufCodecs.STRING_UTF8, ShipCommandPayload::textData, // Überträgt unseren Text
             ShipCommandPayload::new
     );
 
@@ -37,18 +37,39 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
             var level = player.level();
             var pos = data.pos();
             int dist = data.value();
+            String text = data.textData();
 
-            // Wir holen uns den Rucksack!
             if (level.getBlockEntity(pos) instanceof SpaceshipControlBlockEntity be) {
-
-                // UUID auslesen (ist null, wenn noch nicht gescannt)
                 UUID shipId = be.getShipId();
 
-                if (data.command().equals("SCAN")) {
-                    com.peaceman.alpha.ship.SpaceshipManager.createShipInstance(level, pos);
+                // 1. Initialisieren (Darf auch passieren, wenn shipId noch null ist)
+                if (data.command().equals("CREATE")) {
+                    com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
                 }
-                else if (shipId != null) { // Wenn wir fliegen wollen, MUSS die UUID existieren!
+                // Ab hier MUSS eine UUID existieren
+                else if (shipId != null) {
 
+                    // 2. Updaten & Löschen
+                    if (data.command().equals("UPDATE_BLOCKS")) {
+                        com.peaceman.alpha.ship.SpaceshipManager.updateShipBlocks(level, pos, shipId);
+                        return;
+                    }
+                    else if (data.command().equals("DELETE_SHIP")) {
+                        com.peaceman.alpha.ship.SpaceshipManager.deleteShipFromBlock(level, pos, shipId);
+                        return;
+                    }
+
+                    // --- HOMES ---
+                    if (data.command().equals("SAVE_HOME")) {
+                        com.peaceman.alpha.ship.SpaceshipManager.saveHome(level, shipId, text);
+                        return;
+                    }
+                    else if (data.command().equals("TP_HOME")) {
+                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text);
+                        return;
+                    }
+
+                    // --- BEWEGUNG ---
                     Direction forward = player.getDirection();
                     Direction right = forward.getClockWise();
                     int dx = 0, dy = 0, dz = 0;
@@ -62,7 +83,6 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
                         case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
                     }
 
-                    // Wir geben dem Manager jetzt die UUID anstatt der Position!
                     com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz);
                 }
             }

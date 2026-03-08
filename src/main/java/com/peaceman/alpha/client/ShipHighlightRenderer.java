@@ -19,6 +19,19 @@ public class ShipHighlightRenderer {
     public static boolean isHighlightActive = false;
     public static Set<BlockPos> shipBlocks = new HashSet<>();
 
+    // --- NEU: Die perfekte Methode zum Ein- und Ausschalten ---
+    public static void toggleHighlight(net.minecraft.world.level.Level level, BlockPos startPos) {
+        if (isHighlightActive) {
+            // Ausschalten
+            isHighlightActive = false;
+            shipBlocks.clear();
+        } else {
+            // Einschalten
+            shipBlocks = com.peaceman.alpha.ship.SpaceshipManager.scanSpaceship(level, startPos);
+            isHighlightActive = true;
+        }
+    }
+
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         if (isHighlightActive && !shipBlocks.isEmpty()) {
@@ -29,20 +42,16 @@ public class ShipHighlightRenderer {
                 if (level.getGameTime() % 10 == 0) {
 
                     for (BlockPos pos : shipBlocks) {
-                        // Prüfe alle 6 Seiten des Blocks (Oben, Unten, Nord, Süd, Ost, West)
+                        // Prüfe alle 6 Seiten des Blocks
                         for (Direction dir : Direction.values()) {
 
-                            // Wenn der Block auf DIESER Seite NICHT zum Schiff gehört (z.B. Luft ist)...
+                            // Wenn der Block auf DIESER Seite NICHT zum Schiff gehört...
                             if (!shipBlocks.contains(pos.relative(dir))) {
 
-                                // ...dann sind wir an der Außenhülle!
-                                // Wir schieben den Partikel um 0.55 in die jeweilige Richtung nach außen
                                 double x = pos.getX() + 0.5 + (dir.getStepX() * 0.55);
                                 double y = pos.getY() + 0.5 + (dir.getStepY() * 0.55);
                                 double z = pos.getZ() + 0.5 + (dir.getStepZ() * 0.55);
 
-                                // Ein bisschen Zufall (-0.5 bis +0.5), damit sich die Partikel
-                                // schön über die gesamte Block-Oberfläche verteilen
                                 if (dir.getAxis() != Direction.Axis.X) x += (level.random.nextDouble() - 0.5);
                                 if (dir.getAxis() != Direction.Axis.Y) y += (level.random.nextDouble() - 0.5);
                                 if (dir.getAxis() != Direction.Axis.Z) z += (level.random.nextDouble() - 0.5);
