@@ -1,6 +1,7 @@
 package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
+import com.peaceman.alpha.block.SpaceshipControlBlockEntity;
 import com.peaceman.alpha.registry.ModBlocks;
 import com.peaceman.alpha.ship.SpaceshipManager;
 import net.minecraft.core.BlockPos;
@@ -11,6 +12,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.UUID;
 
 public record ShipCommandPayload(BlockPos pos, String command, int value) implements CustomPacketPayload {
 
@@ -35,37 +38,33 @@ public record ShipCommandPayload(BlockPos pos, String command, int value) implem
             var pos = data.pos();
             int dist = data.value();
 
-            if (level.getBlockState(pos).is(ModBlocks.SPACESHIP_CONTROL.get())) {
+            // Wir holen uns den Rucksack!
+            if (level.getBlockEntity(pos) instanceof SpaceshipControlBlockEntity be) {
+
+                // UUID auslesen (ist null, wenn noch nicht gescannt)
+                UUID shipId = be.getShipId();
 
                 if (data.command().equals("SCAN")) {
-                    SpaceshipManager.createShipInstance(level, pos);
+                    com.peaceman.alpha.ship.SpaceshipManager.createShipInstance(level, pos);
                 }
-                else if (data.command().equals("MOVE_UP")) {
-                    SpaceshipManager.moveShipInstance(level, pos, 0, dist, 0);
-                }
-                else if (data.command().equals("MOVE_DOWN")) {
-                    SpaceshipManager.moveShipInstance(level, pos, 0, -dist, 0);
-                }
-                else {
-                    // Die Richtung, in die der Spieler schaut (Norden, Süden, Osten, Westen)
-                    Direction forward = player.getDirection();
-                    // Die Richtung, die rechts vom Spieler liegt (Uhrzeigersinn)
-                    Direction right = forward.getClockWise();
+                else if (shipId != null) { // Wenn wir fliegen wollen, MUSS die UUID existieren!
 
+                    Direction forward = player.getDirection();
+                    Direction right = forward.getClockWise();
                     int dx = 0, dy = 0, dz = 0;
 
-                    // Wir multiplizieren die Blickrichtung (gibt 1, 0 oder -1 zurück) mit der Distanz
                     switch (data.command()) {
+                        case "MOVE_UP" -> dy = dist;
+                        case "MOVE_DOWN" -> dy = -dist;
                         case "MOVE_FORWARD" -> { dx = forward.getStepX() * dist; dz = forward.getStepZ() * dist; }
                         case "MOVE_BACKWARD" -> { dx = -forward.getStepX() * dist; dz = -forward.getStepZ() * dist; }
                         case "MOVE_RIGHT" -> { dx = right.getStepX() * dist; dz = right.getStepZ() * dist; }
                         case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
                     }
 
-                    // Die universelle Methode mit unseren berechneten Werten aufrufen!
-                    SpaceshipManager.moveShipInstance(level, pos, dx, dy, dz);
+                    // Wir geben dem Manager jetzt die UUID anstatt der Position!
+                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz);
                 }
             }
         });
-    }
-}
+    }}

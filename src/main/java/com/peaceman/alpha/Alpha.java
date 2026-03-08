@@ -2,6 +2,7 @@ package com.peaceman.alpha;
 
 import com.mojang.logging.LogUtils;
 import com.peaceman.alpha.network.ShipCommandPayload;
+import com.peaceman.alpha.registry.ModBlockEntities;
 import com.peaceman.alpha.registry.ModBlocks;
 import com.peaceman.alpha.registry.ModCreativeTabs;
 import com.peaceman.alpha.registry.ModItems;
@@ -22,8 +23,10 @@ public class Alpha {
 
         // 2. Ruft unsere aufgeräumten Register-Klassen auf
         ModBlocks.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
         ModItems.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
+
     }
 
     // Kümmert sich darum, dass Client und Server miteinander reden können

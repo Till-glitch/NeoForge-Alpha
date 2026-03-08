@@ -6,13 +6,24 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.Nullable;
 
-public class SpaceshipControlBlock extends Block {
+// HIER NEU: implements EntityBlock
+public class SpaceshipControlBlock extends Block implements EntityBlock {
 
     public SpaceshipControlBlock(Properties properties) {
         super(properties);
+    }
+
+    // HIER NEU: Diese Methode wird automatisch aufgerufen, wenn der Block platziert wird
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new SpaceshipControlBlockEntity(pos, state);
     }
 
     @Override
@@ -22,23 +33,26 @@ public class SpaceshipControlBlock extends Block {
         }
         return InteractionResult.SUCCESS;
     }
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        // WICHTIG: Wir prüfen, ob der Block WIRKLICH durch einen anderen (z.B. Luft) ersetzt wird.
-        // Das verhindert, dass das Schiff gelöscht wird, wenn sich nur eine Block-Eigenschaft ändert.
-        if (!state.is(newState.getBlock())) {
-
-            // Nur der Server darf Daten löschen
-            if (!level.isClientSide()) {
-                com.peaceman.alpha.ship.SpaceshipManager.removeShipInstance(level, pos);
-            }
-
-            // Das normale Abbau-Verhalten von Minecraft weiterlaufen lassen (z.B. Item droppen)
-            super.onRemove(state, level, pos, newState, isMoving);
-        }
-    }
 
     private void openScreen(BlockPos pos) {
         net.minecraft.client.Minecraft.getInstance().setScreen(new SpaceshipControlScreen(pos));
+    }
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock())) {
+
+            if (!level.isClientSide()) {
+                // Wir holen den Rucksack des Blocks
+                net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(pos);
+
+                // Wenn es unserer ist und er eine UUID hat...
+                if (be instanceof SpaceshipControlBlockEntity shipBe && shipBe.getShipId() != null) {
+                    // ...löschen wir genau dieses Schiff!
+                    com.peaceman.alpha.ship.SpaceshipManager.removeShipInstance(level, shipBe.getShipId());
+                }
+            }
+
+            super.onRemove(state, level, pos, newState, isMoving);
+        }
     }
 }
