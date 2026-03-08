@@ -9,9 +9,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-
+import net.minecraft.server.level.ServerLevel;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import com.peaceman.alpha.Alpha;
 import java.util.*;
-
+@EventBusSubscriber(modid = Alpha.MODID)
 public class SpaceshipManager {
 
     // Unser Gedächtnis für alle Schiffe
@@ -45,6 +49,9 @@ public class SpaceshipManager {
         Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
         ACTIVE_SHIPS.put(startPos, shipBlocks);
         System.out.println("Schiff instanziiert mit " + shipBlocks.size() + " Blöcken!");
+        if (level instanceof ServerLevel serverLevel) {
+            ShipSavedData.get(serverLevel).setDirty();
+        }
     }
 
     // 3. Die Bewegung
@@ -105,5 +112,27 @@ public class SpaceshipManager {
 
         ACTIVE_SHIPS.remove(startPos);
         ACTIVE_SHIPS.put(newStartPos, newShipBlocks);
+        if (level instanceof ServerLevel serverLevel) {
+            ShipSavedData.get(serverLevel).setDirty();
+        }
+    }
+
+    // Wird aufgerufen, wenn der Kontrollblock abgebaut wird
+    public static void removeShipInstance(Level level, BlockPos pos) {
+        if (ACTIVE_SHIPS.containsKey(pos)) {
+            ACTIVE_SHIPS.remove(pos); // Aus dem Gedächtnis löschen
+            System.out.println("Schiffsinstanz an " + pos + " wurde gelöscht!");
+
+            // Die Änderung in der Welt-Datei speichern
+            if (level instanceof ServerLevel serverLevel) {
+                ShipSavedData.get(serverLevel).setDirty();
+            }
+        }
+    }
+    @SubscribeEvent
+    public static void onServerStarted(ServerStartedEvent event) {
+        // Löst das Laden der Datei beim Serverstart aus
+        ShipSavedData.get(event.getServer().overworld());
+        System.out.println("=== RAUMSCHIFFE GELADEN: " + ACTIVE_SHIPS.size() + " ===");
     }
 }
