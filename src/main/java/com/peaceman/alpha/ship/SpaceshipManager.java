@@ -22,16 +22,8 @@ public class SpaceshipManager {
     // Unser neues, objektorientiertes Gedächtnis (Speichert Schiffe nach ihrer eindeutigen UUID)
     public static final Map<UUID, Spaceship> ACTIVE_SHIPS = new HashMap<>();
 
-    // Hilfsmethode: Findet ein Schiff anhand der Position seines Controllers
-    public static Spaceship getShipAt(BlockPos controllerPos) {
-        for (Spaceship ship : ACTIVE_SHIPS.values()) {
-            if (ship.getControllerPos().equals(controllerPos)) {
-                return ship;
-            }
-        }
-        return null;
-    }
-
+    // Eine winzige Hilfsklasse für unseren perfekten Schnappschuss!
+    private record BlockData(BlockState state, net.minecraft.nbt.CompoundTag nbt) {}
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
         ShipSavedData.get(event.getServer().overworld());
@@ -90,31 +82,68 @@ public class SpaceshipManager {
             return shipBlocks.contains(entityPos) || shipBlocks.contains(entityPos.below());
         }).toList();
 
-        Map<BlockPos, BlockState> snapshot = new HashMap<>();
-        for (BlockPos pos : shipBlocks) snapshot.put(pos, level.getBlockState(pos));
+        // --- 1. DER PERFEKTE SCHNAPPSCHUSS (Mit Inventaren) ---
+        Map<BlockPos, BlockData> snapshot = new HashMap<>();
 
-        // --- DER NEUE TRICK FÜR DEN RUCKSACK ---
-        // Bevor wir den alten Block löschen, nehmen wir ihm seine UUID weg!
+        for (BlockPos pos : shipBlocks) {
+            BlockState state = level.getBlockState(pos);
+            net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(pos);
+            net.minecraft.nbt.CompoundTag nbt = null;
+
+            if (be != null) {
+                // Speichert das komplette Inventar, Ofen-Laufzeiten etc. in eine Variable
+                nbt = be.saveWithFullMetadata(level.registryAccess());
+
+                // WICHTIG: Wir leeren die Kiste im Spiel, BEVOR wir sie abbauen!
+                // Sonst regnet es beim Teleportieren Items aus dem Schiff.
+                net.minecraft.world.Clearable.tryClear(be);
+            }
+            snapshot.put(pos, new BlockData(state, nbt));
+        }
+
+        // --- 2. DEN KONTROLLBLOCK VORBEREITEN ---
         if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
             be.setShipId(null);
         }
 
-        // Neue Startposition berechnen und dem Schiffsobjekt geben
         BlockPos newStartPos = startPos.offset(dx, dy, dz);
         ship.setControllerPos(newStartPos);
 
-        for (BlockPos pos : shipBlocks) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 18);
+        // --- 3. ALTES SCHIFF IN LUFT AUFLÖSEN ---
+        for (BlockPos pos : shipBlocks) {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 50);
+        }
 
+        // --- 4. NEUES SCHIFF INKL. INVENTAREN AUFBAUEN ---
         Set<BlockPos> newShipBlocks = new HashSet<>();
-        for (Map.Entry<BlockPos, BlockState> entry : snapshot.entrySet()) {
+        for (Map.Entry<BlockPos, BlockData> entry : snapshot.entrySet()) {
             BlockPos newPos = entry.getKey().offset(dx, dy, dz);
-            level.setBlock(newPos, entry.getValue(), 3);
+            BlockState state = entry.getValue().state();
+            net.minecraft.nbt.CompoundTag nbt = entry.getValue().nbt();
+
+            // Setzt den eigentlichen Block
+            level.setBlock(newPos, state, 50);
             newShipBlocks.add(newPos);
 
-            // --- GANZ WICHTIG ---
-            // Wenn wir den Kontrollblock an der neuen Position platzieren,
-            // müssen wir ihm die UUID wieder in seinen neuen Rucksack stecken!
-            if (entry.getValue().is(com.peaceman.alpha.registry.ModBlocks.SPACESHIP_CONTROL.get())) {
+            // Wenn der Block einen Rucksack (Inventar) hatte, geben wir ihn zurück!
+            if (nbt != null) {
+                // WICHTIG: Im NBT stehen noch die ALTEN X/Y/Z Koordinaten.
+                // Wenn wir die nicht anpassen, stürzt das Spiel ab!
+                nbt.putInt("x", newPos.getX());
+                nbt.putInt("y", newPos.getY());
+                nbt.putInt("z", newPos.getZ());
+
+                // Erstellt die Kiste/Ofen aus den Daten neu und setzt sie in die Welt
+                net.minecraft.world.level.block.entity.BlockEntity newBe =
+                        net.minecraft.world.level.block.entity.BlockEntity.loadStatic(newPos, state, nbt, level.registryAccess());
+
+                if (newBe != null) {
+                    level.setBlockEntity(newBe);
+                }
+            }
+
+            // Unser eigenes Kontrollblock-System (UUID wiedergeben)
+            if (state.is(com.peaceman.alpha.registry.ModBlocks.SPACESHIP_CONTROL.get())) {
                 if (level.getBlockEntity(newPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity newBe) {
                     newBe.setShipId(shipId);
                 }
@@ -122,6 +151,12 @@ public class SpaceshipManager {
         }
 
         ship.setBlocks(newShipBlocks);
+
+        // Jetzt, wo alles sicher steht, updaten wir alle Blöcke,
+        // damit sich Redstone, Zäune und Glasscheiben wieder richtig verbinden!
+        for (BlockPos pos : newShipBlocks) {
+            level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock());
+        }
 
         // ... (Dein Code für die Entities bleibt gleich) ...
         for (Entity entity : entitiesToMove) {
