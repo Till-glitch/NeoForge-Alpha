@@ -35,7 +35,6 @@ public class Alpha {
         registrar.playToServer(
                 ShipCommandPayload.TYPE,
                 ShipCommandPayload.STREAM_CODEC,
-                ShipCommandPayload::handleData
-        );
+                ShipCommandPayload::handleData);
     }
 }
