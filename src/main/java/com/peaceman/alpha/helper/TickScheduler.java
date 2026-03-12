@@ -6,7 +6,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 @EventBusSubscriber // Registriert die Klasse automatisch bei NeoForge
 public class TickScheduler {

@@ -10,8 +10,12 @@ public class ModItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Alpha.MODID);
 
     // Block-Items
-    public static final DeferredItem<BlockItem> EXAMPLE_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("example_block", ModBlocks.EXAMPLE_BLOCK);
-    public static final DeferredItem<BlockItem> SPACESHIP_CONTROL_ITEM = ITEMS.registerSimpleBlockItem("spaceship_control", ModBlocks.SPACESHIP_CONTROL);
+    public static final DeferredItem<BlockItem> EXAMPLE_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("example_block",
+            ModBlocks.EXAMPLE_BLOCK);
+    public static final DeferredItem<BlockItem> SPACESHIP_CONTROL_ITEM = ITEMS
+            .registerSimpleBlockItem("spaceship_control", ModBlocks.SPACESHIP_CONTROL);
+    public static final DeferredItem<BlockItem> SPACESHIP_HELM_ITEM = ITEMS.registerSimpleBlockItem("spaceship_helm",
+            ModBlocks.SPACESHIP_HELM);
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);

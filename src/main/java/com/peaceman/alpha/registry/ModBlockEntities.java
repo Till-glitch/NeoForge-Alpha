@@ -19,6 +19,10 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("spaceship_control_be", () ->
                     BlockEntityType.Builder.of(SpaceshipControlBlockEntity::new, ModBlocks.SPACESHIP_CONTROL.get()).build(null));
 
+    public static final Supplier<BlockEntityType<com.peaceman.alpha.block.SpaceshipHelmBlockEntity>> SPACESHIP_HELM_BE =
+            BLOCK_ENTITIES.register("spaceship_helm_be", () ->
+                    BlockEntityType.Builder.of(com.peaceman.alpha.block.SpaceshipHelmBlockEntity::new, ModBlocks.SPACESHIP_HELM.get()).build(null));
+
     public static void register(IEventBus eventBus) {
         BLOCK_ENTITIES.register(eventBus);
     }

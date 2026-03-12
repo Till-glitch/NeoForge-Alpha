@@ -44,7 +44,9 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
 
                 // 1. Initialisieren (Darf auch passieren, wenn shipId noch null ist)
                 if (data.command().equals("CREATE")) {
-                    com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
+                    if (node instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity) {
+                        com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
+                    }
                 }
                 // Ab hier MUSS eine UUID existieren
                 else if (shipId != null) {

@@ -19,6 +19,9 @@ public class ModBlocks {
     public static final DeferredBlock<Block> SPACESHIP_CONTROL = BLOCKS.register("spaceship_control",
             () -> new SpaceshipControlBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.0f)));
 
+    public static final DeferredBlock<Block> SPACESHIP_HELM = BLOCKS.register("spaceship_helm",
+            () -> new com.peaceman.alpha.block.SpaceshipHelmBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(3.0f)));
+
     // 3. Diese Methode ruft unsere Hauptklasse später auf
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);
