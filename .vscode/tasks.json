@@ -1,0 +1,65 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "runClient (Debug)",
+            "type": "shell",
+            "command": "${workspaceFolder}/gradlew.bat",
+            "args": [
+                "runClient",
+                "--debug-jvm"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "^.*Listening for transport dt_socket at address: [0-9]+$",
+                        "endsPattern": "^.*Listening for transport dt_socket at address: [0-9]+$"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "runServer (Debug)",
+            "type": "shell",
+            "command": "${workspaceFolder}/gradlew.bat",
+            "args": [
+                "runServer",
+                "--debug-jvm"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "^.*Listening for transport dt_socket at address: [0-9]+$",
+                        "endsPattern": "^.*Listening for transport dt_socket at address: [0-9]+$"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -19,11 +19,14 @@ import java.util.*;
 @EventBusSubscriber(modid = Alpha.MODID)
 public class SpaceshipManager {
 
-    // Unser neues, objektorientiertes Gedächtnis (Speichert Schiffe nach ihrer eindeutigen UUID)
+    // Unser neues, objektorientiertes Gedächtnis (Speichert Schiffe nach ihrer
+    // eindeutigen UUID)
     public static final Map<UUID, Spaceship> ACTIVE_SHIPS = new HashMap<>();
 
     // Eine winzige Hilfsklasse für unseren perfekten Schnappschuss!
-    private record BlockData(BlockState state, net.minecraft.nbt.CompoundTag nbt) {}
+    private record BlockData(BlockState state, net.minecraft.nbt.CompoundTag nbt) {
+    }
+
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
         ShipSavedData.get(event.getServer().overworld());
@@ -49,7 +52,64 @@ public class SpaceshipManager {
                 }
             }
         }
+
+        ensureMultipartBlocks(level, shipBlocks);
+
         return shipBlocks;
+    }
+
+    private static void ensureMultipartBlocks(Level level, Set<BlockPos> shipBlocks) {
+        Set<BlockPos> toAdd = new HashSet<>();
+        for (BlockPos pos : shipBlocks) {
+            BlockState state = level.getBlockState(pos);
+
+            if (state.hasProperty(
+                    net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF)) {
+                if (state.getValue(
+                        net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER) {
+                    toAdd.add(pos.above());
+                } else {
+                    toAdd.add(pos.below());
+                }
+            }
+
+            if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.BED_PART)) {
+                Direction facing = state.getValue(
+                        net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING);
+                if (state.getValue(
+                        net.minecraft.world.level.block.state.properties.BlockStateProperties.BED_PART) == net.minecraft.world.level.block.state.properties.BedPart.HEAD) {
+                    toAdd.add(pos.relative(facing.getOpposite()));
+                } else {
+                    toAdd.add(pos.relative(facing));
+                }
+            }
+
+            if (state.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.CHEST_TYPE)) {
+                net.minecraft.world.level.block.state.properties.ChestType type = state
+                        .getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.CHEST_TYPE);
+                if (type != net.minecraft.world.level.block.state.properties.ChestType.SINGLE) {
+                    for (Direction dir : Direction.Plane.HORIZONTAL) {
+                        BlockPos neighbor = pos.relative(dir);
+                        BlockState neighborState = level.getBlockState(neighbor);
+                        if (neighborState.getBlock() == state.getBlock() &&
+                                neighborState.hasProperty(
+                                        net.minecraft.world.level.block.state.properties.BlockStateProperties.CHEST_TYPE)
+                                &&
+                                neighborState.getValue(
+                                        net.minecraft.world.level.block.state.properties.BlockStateProperties.CHEST_TYPE) != net.minecraft.world.level.block.state.properties.ChestType.SINGLE) {
+
+                            if (neighborState.getValue(
+                                    net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING) == state
+                                            .getValue(
+                                                    net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING)) {
+                                toAdd.add(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        shipBlocks.addAll(toAdd);
     }
 
     // Wir übergeben jetzt die UUID anstatt der Startposition!
@@ -65,21 +125,36 @@ public class SpaceshipManager {
         Set<BlockPos> shipBlocks = ship.getBlocks();
         BlockPos startPos = ship.getControllerPos(); // Wir holen uns die alte Position
 
-        // ... (Dein bisheriger Code zum Berechnen der AABB und Snapshot-Machen bleibt gleich) ...
+        // ... (Dein bisheriger Code zum Berechnen der AABB und Snapshot-Machen bleibt
+        // gleich) ...
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
         for (BlockPos pos : shipBlocks) {
-            if (pos.getX() < minX) minX = pos.getX();
-            if (pos.getY() < minY) minY = pos.getY();
-            if (pos.getZ() < minZ) minZ = pos.getZ();
-            if (pos.getX() > maxX) maxX = pos.getX();
-            if (pos.getY() > maxY) maxY = pos.getY();
-            if (pos.getZ() > maxZ) maxZ = pos.getZ();
+            if (pos.getX() < minX)
+                minX = pos.getX();
+            if (pos.getY() < minY)
+                minY = pos.getY();
+            if (pos.getZ() < minZ)
+                minZ = pos.getZ();
+            if (pos.getX() > maxX)
+                maxX = pos.getX();
+            if (pos.getY() > maxY)
+                maxY = pos.getY();
+            if (pos.getZ() > maxZ)
+                maxZ = pos.getZ();
         }
-        AABB shipBounds = new AABB(minX, minY, minZ, maxX + 1, maxY + 2, maxZ + 1);
+        AABB shipBounds = new AABB(minX - 1, minY - 1, minZ - 1, maxX + 2, maxY + 3, maxZ + 2);
         List<Entity> entitiesToMove = level.getEntities(null, shipBounds).stream().filter(entity -> {
             BlockPos entityPos = entity.blockPosition();
-            return shipBlocks.contains(entityPos) || shipBlocks.contains(entityPos.below());
+            if (shipBlocks.contains(entityPos) || shipBlocks.contains(entityPos.below()))
+                return true;
+            for (Direction dir : Direction.values()) {
+                if (shipBlocks.contains(entityPos.relative(dir)))
+                    return true;
+                if (shipBlocks.contains(entityPos.below().relative(dir)))
+                    return true;
+            }
+            return false;
         }).toList();
 
         // --- 1. DER PERFEKTE SCHNAPPSCHUSS (Mit Inventaren) ---
@@ -93,15 +168,32 @@ public class SpaceshipManager {
             if (be != null) {
                 // Speichert das komplette Inventar, Ofen-Laufzeiten etc. in eine Variable
                 nbt = be.saveWithFullMetadata(level.registryAccess());
-
-                // WICHTIG: Wir leeren die Kiste im Spiel, BEVOR wir sie abbauen!
-                // Sonst regnet es beim Teleportieren Items aus dem Schiff.
-                net.minecraft.world.Clearable.tryClear(be);
             }
             snapshot.put(pos, new BlockData(state, nbt));
         }
 
-        // --- 2. DEN KONTROLLBLOCK VORBEREITEN ---
+        // --- 1.5. INVENTARE BRUTAL LÖSCHEN (MOD-KOMPATIBILITÄT) ---
+        for (BlockPos pos : shipBlocks) {
+            if (level.getBlockEntity(pos) != null) {
+                level.removeBlockEntity(pos); // Verhindert Drops beim Abbauen
+            }
+        }
+
+        // --- 2. ZIEL-POSITION BEREINIGEN (KOLLISION) ---
+        Set<BlockPos> newShipBlocks = new HashSet<>();
+        for (BlockPos pos : shipBlocks) {
+            newShipBlocks.add(pos.offset(dx, dy, dz));
+        }
+
+        for (BlockPos newPos : newShipBlocks) {
+            // Wenn an der neuen Position kein Teil unseres aktuellen Schiffs ist und es
+            // nicht Luft ist
+            if (!shipBlocks.contains(newPos) && !level.getBlockState(newPos).isAir()) {
+                level.destroyBlock(newPos, true);
+            }
+        }
+
+        // --- 3. DEN KONTROLLBLOCK VORBEREITEN ---
         if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
             be.setShipId(null);
         }
@@ -109,62 +201,38 @@ public class SpaceshipManager {
         BlockPos newStartPos = startPos.offset(dx, dy, dz);
         ship.setControllerPos(newStartPos);
 
-        // --- 3. ALTES SCHIFF IN LUFT AUFLÖSEN ---
-        for (BlockPos pos : shipBlocks) {
-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 50);
+        // --- 4. NEUES SCHIFF INKL. INVENTAREN AUFBAUEN (ZWEI PHASEN FÜR
+        // REDSTONE/FACKELN) ---
+        List<Map.Entry<BlockPos, BlockData>> solidBlocks = new ArrayList<>();
+        List<Map.Entry<BlockPos, BlockData>> fragileBlocks = new ArrayList<>();
+
+        for (Map.Entry<BlockPos, BlockData> entry : snapshot.entrySet()) {
+            if (entry.getValue().state().getCollisionShape(level, entry.getKey()).isEmpty()) {
+                fragileBlocks.add(entry);
+            } else {
+                solidBlocks.add(entry);
+            }
         }
 
-        // --- 4. NEUES SCHIFF INKL. INVENTAREN AUFBAUEN ---
-        Set<BlockPos> newShipBlocks = new HashSet<>();
-        for (Map.Entry<BlockPos, BlockData> entry : snapshot.entrySet()) {
-            BlockPos newPos = entry.getKey().offset(dx, dy, dz);
-            BlockState state = entry.getValue().state();
-            net.minecraft.nbt.CompoundTag nbt = entry.getValue().nbt();
-
-            // Setzt den eigentlichen Block
-            level.setBlock(newPos, state, 50);
-            newShipBlocks.add(newPos);
-
-            // Wenn der Block einen Rucksack (Inventar) hatte, geben wir ihn zurück!
-            if (nbt != null) {
-                // WICHTIG: Im NBT stehen noch die ALTEN X/Y/Z Koordinaten.
-                // Wenn wir die nicht anpassen, stürzt das Spiel ab!
-                nbt.putInt("x", newPos.getX());
-                nbt.putInt("y", newPos.getY());
-                nbt.putInt("z", newPos.getZ());
-
-                // Erstellt die Kiste/Ofen aus den Daten neu und setzt sie in die Welt
-                net.minecraft.world.level.block.entity.BlockEntity newBe =
-                        net.minecraft.world.level.block.entity.BlockEntity.loadStatic(newPos, state, nbt, level.registryAccess());
-
-                if (newBe != null) {
-                    level.setBlockEntity(newBe);
-                }
-            }
-
-            // Unser eigenes Kontrollblock-System (UUID wiedergeben)
-            if (state.is(com.peaceman.alpha.registry.ModBlocks.SPACESHIP_CONTROL.get())) {
-                if (level.getBlockEntity(newPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity newBe) {
-                    newBe.setShipId(shipId);
-                }
-            }
+        // Zuerst harte Blöcke (Böden/Wände) platzieren
+        for (Map.Entry<BlockPos, BlockData> entry : solidBlocks) {
+            placeBlockFromSnapshot(level, entry, dx, dy, dz, shipId);
+        }
+        // Danach zerbrechliche Blöcke (Fackeln/Redstone), die Halt brauchen
+        for (Map.Entry<BlockPos, BlockData> entry : fragileBlocks) {
+            placeBlockFromSnapshot(level, entry, dx, dy, dz, shipId);
         }
 
         ship.setBlocks(newShipBlocks);
 
-        // Jetzt, wo alles sicher steht, updaten wir alle Blöcke,
-        // damit sich Redstone, Zäune und Glasscheiben wieder richtig verbinden!
-        for (BlockPos pos : newShipBlocks) {
-            level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock());
-        }
-
-        // ... (Dein Code für die Entities bleibt gleich) ...
+        // --- 5. ENTITIES TELEPORTIEREN (Vor dem Abbau des alten Schiffs) ---
         for (Entity entity : entitiesToMove) {
             double newX = entity.getX() + dx;
             double newY = entity.getY() + dy;
             double newZ = entity.getZ() + dz;
             if (entity instanceof ServerPlayer serverPlayer) {
-                serverPlayer.teleportTo((ServerLevel) level, newX, newY, newZ, serverPlayer.getYRot(), serverPlayer.getXRot());
+                serverPlayer.teleportTo((ServerLevel) level, newX, newY, newZ, serverPlayer.getYRot(),
+                        serverPlayer.getXRot());
             } else {
                 entity.setPos(newX, newY, newZ);
                 entity.hurtMarked = true;
@@ -172,8 +240,65 @@ public class SpaceshipManager {
             entity.resetFallDistance();
         }
 
+        // --- 6. ALTES SCHIFF IN LUFT AUFLÖSEN ---
+        List<BlockPos> solidOld = new ArrayList<>();
+        List<BlockPos> fragileOld = new ArrayList<>();
+
+        for (BlockPos pos : shipBlocks) {
+            if (!newShipBlocks.contains(pos)) {
+                if (level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
+                    fragileOld.add(pos);
+                } else {
+                    solidOld.add(pos);
+                }
+            }
+        }
+
+        // Zuerst Fackeln und Redstone löschen
+        for (BlockPos pos : fragileOld) {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 50);
+        }
+        // Dann Böden und Wände löschen
+        for (BlockPos pos : solidOld) {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 50);
+        }
+
+        // Jetzt updaten wir alle neuen Blöcke, damit sich Redstone, Zäune und
+        // Glasscheiben verbinden
+        for (BlockPos pos : newShipBlocks) {
+            level.updateNeighborsAt(pos, level.getBlockState(pos).getBlock());
+        }
+
         if (level instanceof ServerLevel serverLevel) {
             ShipSavedData.get(serverLevel).setDirty();
+        }
+    }
+
+    private static void placeBlockFromSnapshot(Level level, Map.Entry<BlockPos, BlockData> entry, int dx, int dy,
+            int dz, UUID shipId) {
+        BlockPos newPos = entry.getKey().offset(dx, dy, dz);
+        BlockState state = entry.getValue().state();
+        net.minecraft.nbt.CompoundTag nbt = entry.getValue().nbt();
+
+        level.setBlock(newPos, state, 50);
+
+        if (nbt != null) {
+            nbt.putInt("x", newPos.getX());
+            nbt.putInt("y", newPos.getY());
+            nbt.putInt("z", newPos.getZ());
+
+            net.minecraft.world.level.block.entity.BlockEntity newBe = net.minecraft.world.level.block.entity.BlockEntity
+                    .loadStatic(newPos, state, nbt, level.registryAccess());
+
+            if (newBe != null) {
+                level.setBlockEntity(newBe);
+            }
+        }
+
+        if (state.is(com.peaceman.alpha.registry.ModBlocks.SPACESHIP_CONTROL.get())) {
+            if (level.getBlockEntity(newPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity newBe) {
+                newBe.setShipId(shipId);
+            }
         }
     }
 
@@ -238,18 +363,21 @@ public class SpaceshipManager {
             be.setShipId(newShip.getId()); // Rucksack füllen
 
             System.out.println("Neues Schiff erstellt! UUID: " + newShip.getId());
-            if (level instanceof ServerLevel serverLevel) ShipSavedData.get(serverLevel).setDirty();
+            if (level instanceof ServerLevel serverLevel)
+                ShipSavedData.get(serverLevel).setDirty();
         }
     }
 
-    // 2. STRUKTUR AKTUALISIEREN (Lässt UUID und Homes in Ruhe, updatet nur die Blöcke)
+    // 2. STRUKTUR AKTUALISIEREN (Lässt UUID und Homes in Ruhe, updatet nur die
+    // Blöcke)
     public static void updateShipBlocks(Level level, BlockPos startPos, UUID shipId) {
         Spaceship ship = ACTIVE_SHIPS.get(shipId);
         if (ship != null) {
             Set<BlockPos> newBlocks = scanSpaceship(level, startPos);
             ship.setBlocks(newBlocks);
             System.out.println("Struktur aktualisiert! Neue Block-Anzahl: " + newBlocks.size());
-            if (level instanceof ServerLevel serverLevel) ShipSavedData.get(serverLevel).setDirty();
+            if (level instanceof ServerLevel serverLevel)
+                ShipSavedData.get(serverLevel).setDirty();
         }
     }
 
