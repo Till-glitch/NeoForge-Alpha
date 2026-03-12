@@ -67,7 +67,7 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
                         return;
                     }
                     else if (data.command().equals("TP_HOME")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text);
+                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text, player);
                         return;
                     }
 
@@ -85,8 +85,9 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
                         case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
                     }
 
-                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz);
+                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz, player);
                 }
             }
         });
-    }}
+    }
+}

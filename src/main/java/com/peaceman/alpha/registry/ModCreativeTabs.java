@@ -25,6 +25,7 @@ public class ModCreativeTabs {
                         output.accept(ModItems.EXAMPLE_BLOCK_ITEM.get()); // Den alten Beispiel-Block lassen wir vorerst
                                                                           // noch drin
                         output.accept(ModItems.SPACESHIP_HELM_ITEM.get());
+                        output.accept(ModItems.SPACESHIP_REACTOR_ITEM.get());
                     }).build());
 
     public static void register(IEventBus eventBus) {

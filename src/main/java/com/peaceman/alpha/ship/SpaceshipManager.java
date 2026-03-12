@@ -113,7 +113,7 @@ public class SpaceshipManager {
     }
 
     // Wir übergeben jetzt die UUID anstatt der Startposition!
-    public static void moveShipInstance(Level level, UUID shipId, int dx, int dy, int dz) {
+    public static void moveShipInstance(Level level, UUID shipId, int dx, int dy, int dz, net.minecraft.world.entity.player.Player player) {
         // Wir können das Schiff jetzt blitzschnell und direkt aus der Liste fischen
         Spaceship ship = ACTIVE_SHIPS.get(shipId);
 
@@ -123,6 +123,36 @@ public class SpaceshipManager {
         }
 
         Set<BlockPos> shipBlocks = ship.getBlocks();
+        
+        // --- ENERGIE KOSTEN BERECHNEN ---
+        int distance = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+        int energyCost = shipBlocks.size() * distance * 50;
+        
+        List<com.peaceman.alpha.block.SpaceshipReactorBlockEntity> reactors = new java.util.ArrayList<>();
+        int totalEnergyAvailable = 0;
+        
+        for (BlockPos pos : shipBlocks) {
+            if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.SpaceshipReactorBlockEntity reactor) {
+                reactors.add(reactor);
+                totalEnergyAvailable += reactor.getEnergyStorage().getEnergyStored();
+            }
+        }
+        
+        if (totalEnergyAvailable < energyCost) {
+            if (player != null) {
+                player.displayClientMessage(net.minecraft.network.chat.Component.literal("Nicht genug Energie! Benötigt: " + energyCost + " FE"), true);
+            }
+            return;
+        }
+        
+        // --- ENERGIE ABZIEHEN ---
+        int remainingCost = energyCost;
+        for (com.peaceman.alpha.block.SpaceshipReactorBlockEntity reactor : reactors) {
+            if (remainingCost <= 0) break;
+            int extracted = reactor.getEnergyStorage().extractEnergy(remainingCost, false);
+            remainingCost -= extracted;
+        }
+
         BlockPos startPos = ship.getControllerPos(); // Wir holen uns die alte Position
 
         // ... (Dein bisheriger Code zum Berechnen der AABB und Snapshot-Machen bleibt
@@ -325,7 +355,7 @@ public class SpaceshipManager {
     }
 
     // Teleportiert das Schiff zu einem gespeicherten Home
-    public static void teleportToHome(Level level, UUID shipId, String homeName) {
+    public static void teleportToHome(Level level, UUID shipId, String homeName, net.minecraft.world.entity.player.Player player) {
         Spaceship ship = ACTIVE_SHIPS.get(shipId);
 
         if (ship != null && ship.getHomes().containsKey(homeName)) {
@@ -338,7 +368,7 @@ public class SpaceshipManager {
             int dz = targetPos.getZ() - currentPos.getZ();
 
             // Wir nutzen unsere geniale Bewegungs-Methode für den Teleport!
-            moveShipInstance(level, shipId, dx, dy, dz);
+            moveShipInstance(level, shipId, dx, dy, dz, player);
             System.out.println("Schiff erfolgreich zu '" + homeName + "' teleportiert!");
         } else {
             System.out.println("Fehler: Wegpunkt '" + homeName + "' nicht gefunden!");

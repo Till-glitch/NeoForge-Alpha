@@ -16,6 +16,8 @@ public class ModItems {
             .registerSimpleBlockItem("spaceship_control", ModBlocks.SPACESHIP_CONTROL);
     public static final DeferredItem<BlockItem> SPACESHIP_HELM_ITEM = ITEMS.registerSimpleBlockItem("spaceship_helm",
             ModBlocks.SPACESHIP_HELM);
+    public static final DeferredItem<BlockItem> SPACESHIP_REACTOR_ITEM = ITEMS.registerSimpleBlockItem("spaceship_reactor",
+            ModBlocks.SPACESHIP_REACTOR);
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
