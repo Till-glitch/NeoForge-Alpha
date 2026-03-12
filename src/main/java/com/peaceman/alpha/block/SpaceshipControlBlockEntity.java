@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.UUID;
 
-public class SpaceshipControlBlockEntity extends BlockEntity {
+public class SpaceshipControlBlockEntity extends BlockEntity implements ISpaceshipNode {
 
     // Hier speichern wir die einzigartige ID unseres Schiffes!
     private UUID shipId;
@@ -19,10 +19,12 @@ public class SpaceshipControlBlockEntity extends BlockEntity {
     }
 
     // --- GETTER & SETTER ---
+    @Override
     public UUID getShipId() {
         return shipId;
     }
 
+    @Override
     public void setShipId(UUID shipId) {
         this.shipId = shipId;
         setChanged(); // Sagt Minecraft: "Ich habe neue Daten, bitte beim Beenden speichern!"

@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
+import com.peaceman.alpha.helper.TickScheduler;
 
 public class SpaceshipControlScreen extends Screen {
 
@@ -21,7 +22,9 @@ public class SpaceshipControlScreen extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() { return false; }
+    public boolean isPauseScreen() {
+        return false;
+    }
 
     @Override
     protected void init() {
@@ -30,12 +33,16 @@ public class SpaceshipControlScreen extends Screen {
         int leftColumnX = this.width / 2 - 160;
 
         java.util.function.Supplier<Integer> getDist = () -> {
-            try { return Integer.parseInt(this.distanceInput.getValue()); }
-            catch (NumberFormatException e) { return 1; }
+            try {
+                return Integer.parseInt(this.distanceInput.getValue());
+            } catch (NumberFormatException e) {
+                return 1;
+            }
         };
 
         // --- DISTANZ UND MANUELLES FLIEGEN ---
-        this.distanceInput = new EditBox(this.font, this.width / 2 - 50, this.height / 2 - 40, 100, 20, Component.literal("Distanz"));
+        this.distanceInput = new EditBox(this.font, this.width / 2 - 50, this.height / 2 - 40, 100, 20,
+                Component.literal("Distanz"));
         this.distanceInput.setValue("5");
         this.addRenderableWidget(this.distanceInput);
 
@@ -51,11 +58,12 @@ public class SpaceshipControlScreen extends Screen {
 
         // RUNTER Knopf
         this.addRenderableWidget(Button.builder(Component.literal("Runter"), button -> {
-            int dist = getDist.get();
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_DOWN", dist, ""));
-            this.blockPos = this.blockPos.below(dist);
+            TickScheduler.runAfterSeconds(5, () -> {
+                int dist = getDist.get();
+                PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_DOWN", dist, ""));
+                this.blockPos = this.blockPos.below(dist);
+            });
         }).bounds(this.width / 2 - 50, this.height / 2 + 10, 100, 20).build());
-
 
         // VORWÄRTS Knopf
         this.addRenderableWidget(Button.builder(Component.literal("Vorwärts (W)"), button -> {
@@ -96,7 +104,8 @@ public class SpaceshipControlScreen extends Screen {
 
         int rightColumnX = this.width / 2 + 60; // Verschiebt die neuen Elemente nach rechts
 
-        this.homeNameInput = new EditBox(this.font, rightColumnX, this.height / 2 - 40, 100, 20, Component.literal("Wegpunkt Name"));
+        this.homeNameInput = new EditBox(this.font, rightColumnX, this.height / 2 - 40, 100, 20,
+                Component.literal("Wegpunkt Name"));
         this.homeNameInput.setValue("Basis");
         this.addRenderableWidget(this.homeNameInput);
 
@@ -110,18 +119,19 @@ public class SpaceshipControlScreen extends Screen {
             String homeName = this.homeNameInput.getValue();
             // Sendet TP_HOME mit dem Namen!
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "TP_HOME", 0, homeName));
-            // Wir schließen das Menü, da sich das Schiff gleich komplett woanders hin teleportiert
+            // Wir schließen das Menü, da sich das Schiff gleich komplett woanders hin
+            // teleportiert
             this.minecraft.setScreen(null);
         }).bounds(rightColumnX, this.height / 2 + 10, 100, 20).build());
 
         // 4. Markierung An/Aus (Visuelles Highlight)
         this.addRenderableWidget(Button.builder(Component.literal("Markierung An/Aus"), button -> {
             // Wir rufen nur noch unsere neue Methode auf!
-            com.peaceman.alpha.client.ShipHighlightRenderer.toggleHighlight(this.minecraft.level, this.blockPos);}).bounds(rightColumnX, this.height / 2 + 35, 100, 20).build());
+            com.peaceman.alpha.client.ShipHighlightRenderer.toggleHighlight(this.minecraft.level, this.blockPos);
+        }).bounds(rightColumnX, this.height / 2 + 35, 100, 20).build());
 
         // --- SCANNER (Auf der linken Seite) ---
         // --- SCHIFFS-VERWALTUNG (Auf der linken Seite) ---
-
 
         // 1. Schiff initialisieren
         this.addRenderableWidget(Button.builder(Component.literal("Schiff erstellen"), button -> {
@@ -136,7 +146,8 @@ public class SpaceshipControlScreen extends Screen {
         // 3. Schiff vom Block lösen / löschen
         this.addRenderableWidget(Button.builder(Component.literal("Schiff auflösen"), button -> {
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "DELETE_SHIP", 0, ""));
-        }).bounds(this.width / 2 - 50, this.height / 2 -75, 100, 20).build()); }
+        }).bounds(this.width / 2 - 50, this.height / 2 - 75, 100, 20).build());
+    }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {

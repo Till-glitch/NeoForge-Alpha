@@ -1,7 +1,7 @@
 package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
-import com.peaceman.alpha.block.SpaceshipControlBlockEntity;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -39,8 +39,8 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
             int dist = data.value();
             String text = data.textData();
 
-            if (level.getBlockEntity(pos) instanceof SpaceshipControlBlockEntity be) {
-                UUID shipId = be.getShipId();
+            if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+                UUID shipId = node.getShipId();
 
                 // 1. Initialisieren (Darf auch passieren, wenn shipId noch null ist)
                 if (data.command().equals("CREATE")) {

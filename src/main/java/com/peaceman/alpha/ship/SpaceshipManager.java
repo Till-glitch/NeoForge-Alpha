@@ -295,10 +295,8 @@ public class SpaceshipManager {
             }
         }
 
-        if (state.is(com.peaceman.alpha.registry.ModBlocks.SPACESHIP_CONTROL.get())) {
-            if (level.getBlockEntity(newPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity newBe) {
-                newBe.setShipId(shipId);
-            }
+        if (level.getBlockEntity(newPos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+            node.setShipId(shipId);
         }
     }
 
@@ -360,7 +358,12 @@ public class SpaceshipManager {
             Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
             Spaceship newShip = new Spaceship(startPos, shipBlocks);
             ACTIVE_SHIPS.put(newShip.getId(), newShip);
-            be.setShipId(newShip.getId()); // Rucksack füllen
+            
+            for (BlockPos pos : shipBlocks) {
+                if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+                    node.setShipId(newShip.getId());
+                }
+            }
 
             System.out.println("Neues Schiff erstellt! UUID: " + newShip.getId());
             if (level instanceof ServerLevel serverLevel)
@@ -375,6 +378,11 @@ public class SpaceshipManager {
         if (ship != null) {
             Set<BlockPos> newBlocks = scanSpaceship(level, startPos);
             ship.setBlocks(newBlocks);
+            for (BlockPos pos : newBlocks) {
+                if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+                    node.setShipId(shipId);
+                }
+            }
             System.out.println("Struktur aktualisiert! Neue Block-Anzahl: " + newBlocks.size());
             if (level instanceof ServerLevel serverLevel)
                 ShipSavedData.get(serverLevel).setDirty();
@@ -383,11 +391,14 @@ public class SpaceshipManager {
 
     // 3. SCHIFF MANUELL AUFLÖSEN (Löscht das Schiff und leert den Block)
     public static void deleteShipFromBlock(Level level, BlockPos startPos, UUID shipId) {
-        removeShipInstance(level, shipId); // Ruft unsere bestehende Lösch-Methode auf
-
-        // Leert den Rucksack des Blocks, damit man ihn neu initialisieren kann
-        if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
-            be.setShipId(null);
+        Spaceship ship = ACTIVE_SHIPS.get(shipId);
+        if (ship != null) {
+            for (BlockPos pos : ship.getBlocks()) {
+                if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+                    node.setShipId(null);
+                }
+            }
         }
+        removeShipInstance(level, shipId); // Ruft unsere bestehende Lösch-Methode auf
     }
 }
