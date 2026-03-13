@@ -25,34 +25,48 @@ public class SpaceshipControlScreen extends Screen {
     protected void init() {
         super.init();
 
-        int centerX = this.width / 2 - 50;
-        int startY = this.height / 2 - 50;
+        // Exakte Bildschirmmitte berechnen
+        int centerX = this.width / 2;
+        int centerY = this.height / 2;
+
+        // Button-Maße (Etwas breiter, damit "Markierung An/Aus" gut reinpasst)
+        int btnWidth = 140;
+        int btnHeight = 20;
+        int btnLeft = centerX - (btnWidth / 2);
 
         // 1. Schiff erstellen
         this.addRenderableWidget(Button.builder(Component.literal("Schiff erstellen"), button -> {
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "CREATE", 0, ""));
-        }).bounds(centerX, startY, 100, 20).build());
+        }).bounds(btnLeft, centerY - 45, btnWidth, btnHeight).build());
 
         // 2. Struktur aktualisieren
         this.addRenderableWidget(Button.builder(Component.literal("Struktur updaten"), button -> {
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "UPDATE_BLOCKS", 0, ""));
-        }).bounds(centerX, startY + 25, 100, 20).build());
+        }).bounds(btnLeft, centerY - 15, btnWidth, btnHeight).build());
 
         // 3. Schiff auflösen
         this.addRenderableWidget(Button.builder(Component.literal("Schiff auflösen"), button -> {
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "DELETE_SHIP", 0, ""));
-        }).bounds(centerX, startY + 50, 100, 20).build());
+        }).bounds(btnLeft, centerY + 15, btnWidth, btnHeight).build());
 
         // 4. Markierung An/Aus
         this.addRenderableWidget(Button.builder(Component.literal("Markierung An/Aus"), button -> {
             com.peaceman.alpha.client.ShipHighlightRenderer.toggleHighlight(this.minecraft.level, this.blockPos);
-        }).bounds(centerX, startY + 75, 100, 20).build());
+        }).bounds(btnLeft, centerY + 45, btnWidth, btnHeight).build());
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // 1. Spielwelt im Hintergrund abdunkeln
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
+
+        int centerX = this.width / 2;
+        int centerY = this.height / 2;
+
+        // 2. Zeichnet alle Buttons
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // 3. Den Titel exakt zentriert über den Buttons zeichnen (16777215 ist reines Weiß)
+        guiGraphics.drawCenteredString(this.font, this.title, centerX, centerY - 75, 16777215);
     }
-}
+}
