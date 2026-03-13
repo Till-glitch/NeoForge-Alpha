@@ -9,16 +9,14 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.UUID;
 
-public class SpaceshipControlBlockEntity extends BlockEntity implements ISpaceshipNode {
+public class SpaceshipHelmBlockEntity extends BlockEntity implements ISpaceshipNode {
 
-    // Hier speichern wir die einzigartige ID unseres Schiffes!
     private UUID shipId;
 
-    public SpaceshipControlBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.SPACESHIP_CONTROL_BE.get(), pos, state);
+    public SpaceshipHelmBlockEntity(BlockPos pos, BlockState state) {
+        super(ModBlockEntities.SPACESHIP_HELM_BE.get(), pos, state);
     }
 
-    // --- GETTER & SETTER ---
     @Override
     public UUID getShipId() {
         return shipId;
@@ -27,10 +25,9 @@ public class SpaceshipControlBlockEntity extends BlockEntity implements ISpacesh
     @Override
     public void setShipId(UUID shipId) {
         this.shipId = shipId;
-        setChanged(); // Sagt Minecraft: "Ich habe neue Daten, bitte beim Beenden speichern!"
+        setChanged();
     }
 
-    // --- NBT SPEICHERN (In die Welt-Datei schreiben) ---
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -39,7 +36,6 @@ public class SpaceshipControlBlockEntity extends BlockEntity implements ISpacesh
         }
     }
 
-    // --- NBT LADEN (Aus der Welt-Datei lesen) ---
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);

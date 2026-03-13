@@ -6,6 +6,7 @@ import com.peaceman.alpha.registry.ModBlockEntities;
 import com.peaceman.alpha.registry.ModBlocks;
 import com.peaceman.alpha.registry.ModCreativeTabs;
 import com.peaceman.alpha.registry.ModItems;
+import com.peaceman.alpha.registry.ModMenuTypes;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -20,12 +21,14 @@ public class Alpha {
     public Alpha(IEventBus modEventBus, ModContainer modContainer) {
         // 1. Registriert unsere Netzwerk-Pakete (für die Raumschiff-Steuerung)
         modEventBus.addListener(this::registerNetwork);
+        modEventBus.addListener(this::registerCapabilities);
 
         // 2. Ruft unsere aufgeräumten Register-Klassen auf
         ModBlocks.register(modEventBus);
         ModBlockEntities.register(modEventBus);
         ModItems.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
 
     }
 
@@ -36,5 +39,13 @@ public class Alpha {
                 ShipCommandPayload.TYPE,
                 ShipCommandPayload.STREAM_CODEC,
                 ShipCommandPayload::handleData);
+    }
+
+    private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(
+                net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                ModBlockEntities.SPACESHIP_REACTOR_BE.get(),
+                (be, side) -> be.getEnergyStorage()
+        );
     }
 }

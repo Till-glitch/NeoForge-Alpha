@@ -1,7 +1,7 @@
 package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
-import com.peaceman.alpha.block.SpaceshipControlBlockEntity;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -39,12 +39,14 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
             int dist = data.value();
             String text = data.textData();
 
-            if (level.getBlockEntity(pos) instanceof SpaceshipControlBlockEntity be) {
-                UUID shipId = be.getShipId();
+            if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
+                UUID shipId = node.getShipId();
 
                 // 1. Initialisieren (Darf auch passieren, wenn shipId noch null ist)
                 if (data.command().equals("CREATE")) {
-                    com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
+                    if (node instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity) {
+                        com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
+                    }
                 }
                 // Ab hier MUSS eine UUID existieren
                 else if (shipId != null) {
@@ -65,7 +67,7 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
                         return;
                     }
                     else if (data.command().equals("TP_HOME")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text);
+                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text, player);
                         return;
                     }
 
@@ -83,8 +85,9 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
                         case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
                     }
 
-                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz);
+                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz, player);
                 }
             }
         });
-    }}
+    }
+}
