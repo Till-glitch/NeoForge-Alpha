@@ -6,6 +6,7 @@ import com.peaceman.alpha.registry.ModBlockEntities;
 import com.peaceman.alpha.registry.ModBlocks;
 import com.peaceman.alpha.registry.ModCreativeTabs;
 import com.peaceman.alpha.registry.ModItems;
+import com.peaceman.alpha.registry.ModMenuTypes;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -27,6 +28,7 @@ public class Alpha {
         ModBlockEntities.register(modEventBus);
         ModItems.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
+        ModMenuTypes.register(modEventBus);
 
     }
 

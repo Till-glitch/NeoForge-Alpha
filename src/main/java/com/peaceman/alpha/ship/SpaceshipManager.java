@@ -126,7 +126,7 @@ public class SpaceshipManager {
         
         // --- ENERGIE KOSTEN BERECHNEN ---
         int distance = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-        int energyCost = shipBlocks.size() * distance * 50;
+        int energyCost = shipBlocks.size() * distance * 10;
         
         List<com.peaceman.alpha.block.SpaceshipReactorBlockEntity> reactors = new java.util.ArrayList<>();
         int totalEnergyAvailable = 0;

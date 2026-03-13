@@ -7,10 +7,15 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.PacketDistributor;
 import com.peaceman.alpha.helper.TickScheduler;
 
 public class SpaceshipHelmScreen extends Screen {
+
+    private static final ResourceLocation BG_TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
+    private static final int WIDTH = 256;
+    private static final int HEIGHT = 166;
 
     private net.minecraft.core.BlockPos blockPos;
     private EditBox distanceInput;
@@ -30,6 +35,9 @@ public class SpaceshipHelmScreen extends Screen {
     protected void init() {
         super.init();
 
+        int leftPos = (this.width - WIDTH) / 2;
+        int topPos = (this.height - HEIGHT) / 2;
+
         java.util.function.Supplier<Integer> getDist = () -> {
             try {
                 return Integer.parseInt(this.distanceInput.getValue());
@@ -39,7 +47,7 @@ public class SpaceshipHelmScreen extends Screen {
         };
 
         // --- DISTANZ UND MANUELLES FLIEGEN ---
-        this.distanceInput = new EditBox(this.font, this.width / 2 - 50, this.height / 2 - 40, 100, 20,
+        this.distanceInput = new EditBox(this.font, leftPos + 20, topPos + 40, 80, 20,
                 Component.literal("Distanz"));
         this.distanceInput.setValue("5");
         this.addRenderableWidget(this.distanceInput);
@@ -49,7 +57,7 @@ public class SpaceshipHelmScreen extends Screen {
             int dist = getDist.get();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_UP", dist, ""));
             this.blockPos = this.blockPos.above(dist);
-        }).bounds(this.width / 2 - 50, this.height / 2 - 15, 100, 20).build());
+        }).bounds(leftPos + 20, topPos + 65, 80, 20).build());
 
         // RUNTER Knopf
         this.addRenderableWidget(Button.builder(Component.literal("Runter"), button -> {
@@ -58,72 +66,73 @@ public class SpaceshipHelmScreen extends Screen {
                 PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_DOWN", dist, ""));
                 this.blockPos = this.blockPos.below(dist);
             });
-        }).bounds(this.width / 2 - 50, this.height / 2 + 10, 100, 20).build());
+        }).bounds(leftPos + 20, topPos + 90, 80, 20).build());
 
-        // VORWÄRTS Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Vorwärts (W)"), button -> {
+        // Richtungs-Steuerung (Mitte)
+        int centerCol = leftPos + 110;
+        this.addRenderableWidget(Button.builder(Component.literal("W"), button -> {
             int dist = getDist.get();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_FORWARD", dist, ""));
+            this.blockPos = this.blockPos.relative(this.minecraft.player.getDirection(), dist);
+        }).bounds(centerCol, topPos + 40, 35, 20).build());
 
-            Direction forward = this.minecraft.player.getDirection();
-            this.blockPos = this.blockPos.relative(forward, dist);
-        }).bounds(this.width / 2 - 160, this.height / 2 - 15, 100, 20).build());
-
-        // RÜCKWÄRTS Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Rückwärts (S)"), button -> {
-            int dist = getDist.get();
-            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_BACKWARD", dist, ""));
-
-            Direction forward = this.minecraft.player.getDirection();
-            this.blockPos = this.blockPos.relative(forward.getOpposite(), dist);
-        }).bounds(this.width / 2 - 160, this.height / 2 + 10, 100, 20).build());
-
-        // LINKS Knopf (Etwas weiter unten platziert)
-        this.addRenderableWidget(Button.builder(Component.literal("Links (A)"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("A"), button -> {
             int dist = getDist.get();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_LEFT", dist, ""));
+            this.blockPos = this.blockPos.relative(this.minecraft.player.getDirection().getCounterClockWise(), dist);
+        }).bounds(centerCol - 40, topPos + 65, 35, 20).build());
 
-            Direction forward = this.minecraft.player.getDirection();
-            this.blockPos = this.blockPos.relative(forward.getCounterClockWise(), dist);
-        }).bounds(this.width / 2 - 160, this.height / 2 + 35, 100, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("S"), button -> {
+            int dist = getDist.get();
+            PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_BACKWARD", dist, ""));
+            this.blockPos = this.blockPos.relative(this.minecraft.player.getDirection().getOpposite(), dist);
+        }).bounds(centerCol, topPos + 65, 35, 20).build());
 
-        // RECHTS Knopf
-        this.addRenderableWidget(Button.builder(Component.literal("Rechts (D)"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("D"), button -> {
             int dist = getDist.get();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "MOVE_RIGHT", dist, ""));
+            this.blockPos = this.blockPos.relative(this.minecraft.player.getDirection().getClockWise(), dist);
+        }).bounds(centerCol + 40, topPos + 65, 35, 20).build());
 
-            Direction forward = this.minecraft.player.getDirection();
-            this.blockPos = this.blockPos.relative(forward.getClockWise(), dist);
-        }).bounds(this.width / 2 - 50, this.height / 2 + 35, 100, 20).build());
-
-        // --- DAS NEUE HOME SYSTEM (Auf der rechten Seite des Bildschirms) ---
-        int rightColumnX = this.width / 2 + 60;
-
-        this.homeNameInput = new EditBox(this.font, rightColumnX, this.height / 2 - 40, 100, 20,
-                Component.literal("Wegpunkt Name"));
+        // --- HOME SYSTEM (Rechts) ---
+        int rightCol = leftPos + 160;
+        this.homeNameInput = new EditBox(this.font, rightCol, topPos + 40, 80, 20,
+                Component.literal("Wegpunkt"));
         this.homeNameInput.setValue("Basis");
         this.addRenderableWidget(this.homeNameInput);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Wegpunkt speichern"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Speichern"), button -> {
             String homeName = this.homeNameInput.getValue();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "SAVE_HOME", 0, homeName));
-        }).bounds(rightColumnX, this.height / 2 - 15, 100, 20).build());
+        }).bounds(rightCol, topPos + 65, 80, 20).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Zu Wegpunkt fliegen"), button -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Anfliegen"), button -> {
             String homeName = this.homeNameInput.getValue();
             PacketDistributor.sendToServer(new ShipCommandPayload(this.blockPos, "TP_HOME", 0, homeName));
             this.minecraft.setScreen(null);
-        }).bounds(rightColumnX, this.height / 2 + 10, 100, 20).build());
+        }).bounds(rightCol, topPos + 90, 80, 20).build());
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFF);
 
-        guiGraphics.drawString(this.font, "Flugdistanz", this.width / 2 - 50, this.height / 2 - 55, 0xA0A0A0);
-        guiGraphics.drawString(this.font, "Navigation", this.width / 2 + 60, this.height / 2 - 55, 0xA0A0A0);
+        int leftPos = (this.width - WIDTH) / 2;
+        int topPos = (this.height - HEIGHT) / 2;
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 100);
+
+        // Hintergrund-Textur zeichnen
+        guiGraphics.blit(BG_TEXTURE, leftPos, topPos, 0, 0, WIDTH, HEIGHT);
+
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, topPos + 10, 0x404040);
+        
+        guiGraphics.drawString(this.font, "Flug", leftPos + 20, topPos + 28, 0x404040, false);
+        guiGraphics.drawString(this.font, "Navigation", leftPos + 160, topPos + 28, 0x404040, false);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        guiGraphics.pose().popPose();
     }
 }

@@ -1,22 +1,35 @@
 package com.peaceman.alpha.block;
 
+import com.peaceman.alpha.menu.SpaceshipReactorMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-
 import org.jetbrains.annotations.Nullable;
 
-public class SpaceshipReactorBlock extends Block implements EntityBlock {
-
+public class SpaceshipReactorBlock extends BaseEntityBlock  {
+    public static final com.mojang.serialization.MapCodec<SpaceshipReactorBlock> CODEC = simpleCodec(SpaceshipReactorBlock::new);
     public SpaceshipReactorBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    protected com.mojang.serialization.MapCodec<? extends net.minecraft.world.level.block.BaseEntityBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
@@ -25,12 +38,20 @@ public class SpaceshipReactorBlock extends Block implements EntityBlock {
         return new SpaceshipReactorBlockEntity(pos, state);
     }
 
-    // 1. Wird aufgerufen, wenn der Spieler ein Item (z.B. Redstone) in der Hand
-    // hält
+    @Override
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if (!level.isClientSide) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof SpaceshipReactorBlockEntity reactorEntity) {
+                player.openMenu(reactorEntity, pos);
+            }
+        }
+        return InteractionResult.SUCCESS;
+    }
     @Override
     protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack,
-            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-            BlockHitResult hitResult) {
+                                                                  BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+                                                                  BlockHitResult hitResult) {
 
         // --- DER ENTWICKLER-CHEAT ---
         if (stack.is(net.minecraft.world.item.Items.REDSTONE)) {
@@ -50,21 +71,13 @@ public class SpaceshipReactorBlock extends Block implements EntityBlock {
         return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
-    // 2. Wird aufgerufen, wenn der Spieler KEIN Item (oder ein irrelevantes Item)
-    // in der Hand hält
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-            BlockHitResult hitResult) {
-
-        // --- DAS NORMALE MENÜ ---
-        if (level.isClientSide()) {
-            openScreen(pos);
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof SpaceshipReactorBlockEntity) {
+            return (MenuProvider) blockEntity;
         }
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return null;
     }
 
-    private void openScreen(BlockPos pos) {
-        net.minecraft.client.Minecraft.getInstance()
-                .setScreen(new com.peaceman.alpha.client.screen.SpaceshipReactorScreen(pos));
-    }
 }
