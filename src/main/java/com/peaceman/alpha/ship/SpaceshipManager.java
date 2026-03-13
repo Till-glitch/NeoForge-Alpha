@@ -114,7 +114,6 @@ public class SpaceshipManager {
 
     // Wir übergeben jetzt die UUID anstatt der Startposition!
     public static void moveShipInstance(Level level, UUID shipId, int dx, int dy, int dz, net.minecraft.world.entity.player.Player player) {
-        // Wir können das Schiff jetzt blitzschnell und direkt aus der Liste fischen
         Spaceship ship = ACTIVE_SHIPS.get(shipId);
 
         if (ship == null || ship.getBlocks().isEmpty()) {
@@ -123,35 +122,14 @@ public class SpaceshipManager {
         }
 
         Set<BlockPos> shipBlocks = ship.getBlocks();
-        
-        // --- ENERGIE KOSTEN BERECHNEN ---
-        int distance = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-        int energyCost = shipBlocks.size() * distance * 10;
-        
-        List<com.peaceman.alpha.block.SpaceshipReactorBlockEntity> reactors = new java.util.ArrayList<>();
-        int totalEnergyAvailable = 0;
-        
-        for (BlockPos pos : shipBlocks) {
-            if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.SpaceshipReactorBlockEntity reactor) {
-                reactors.add(reactor);
-                totalEnergyAvailable += reactor.getEnergyStorage().getEnergyStored();
-            }
-        }
-        
-        if (totalEnergyAvailable < energyCost) {
-            if (player != null) {
-                player.displayClientMessage(net.minecraft.network.chat.Component.literal("Nicht genug Energie! Benötigt: " + energyCost + " FE"), true);
-            }
+
+        // --- ⚡ ENERGIE-MANAGEMENT AUSGELAGERT ⚡ ---
+        // Prüft, ob genug Energie da ist und zieht sie direkt ab. Wenn nicht: Abbruch (return)!
+        if (!SpaceshipEnergyManager.tryConsumeFlightEnergy(level, shipBlocks, dx, dy, dz, player)) {
             return;
         }
-        
-        // --- ENERGIE ABZIEHEN ---
-        int remainingCost = energyCost;
-        for (com.peaceman.alpha.block.SpaceshipReactorBlockEntity reactor : reactors) {
-            if (remainingCost <= 0) break;
-            int extracted = reactor.getEnergyStorage().extractEnergy(remainingCost, false);
-            remainingCost -= extracted;
-        }
+        // --------------------------------------------
+
 
         BlockPos startPos = ship.getControllerPos(); // Wir holen uns die alte Position
 
@@ -385,7 +363,7 @@ public class SpaceshipManager {
                 return;
             }
 
-            Set<BlockPos> shipBlocks = scanSpaceship(level, startPos);
+            Set<BlockPos> shipBlocks = SpaceshipScanner.scan(level, startPos);
             Spaceship newShip = new Spaceship(startPos, shipBlocks);
             ACTIVE_SHIPS.put(newShip.getId(), newShip);
             
@@ -406,7 +384,7 @@ public class SpaceshipManager {
     public static void updateShipBlocks(Level level, BlockPos startPos, UUID shipId) {
         Spaceship ship = ACTIVE_SHIPS.get(shipId);
         if (ship != null) {
-            Set<BlockPos> newBlocks = scanSpaceship(level, startPos);
+            Set<BlockPos> newBlocks = SpaceshipScanner.scan(level, startPos);
             ship.setBlocks(newBlocks);
             for (BlockPos pos : newBlocks) {
                 if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
