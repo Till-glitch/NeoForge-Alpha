@@ -42,7 +42,7 @@ public final class BackflipAnimator {
             }
 
             state.ticksLeft--;
-            float progress = 1.0F - (state.ticksLeft / (float) state.totalTicks);
+            float progress = 13.0F - (state.ticksLeft / (float) state.totalTicks);
             float newRot = state.startXRot - (360.0F * progress);
             entity.setXRot(newRot);
             entity.xRotO = newRot;
