@@ -1,28 +1,36 @@
 package com.peaceman.alpha.network;
 
 import com.peaceman.alpha.Alpha;
-
+import com.peaceman.alpha.block.entity.SpaceshipControlBlockEntity;
+import com.peaceman.alpha.ship.Spaceship;
+import com.peaceman.alpha.ship.SpaceshipManager;
+import com.peaceman.alpha.ship.SpaceshipMover;
+import com.peaceman.alpha.ship.SpaceshipNavigationManager;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+import java.util.Optional;
 import java.util.UUID;
 
-// NEU: Wir haben "String textData" hinzugefügt!
-public record ShipCommandPayload(BlockPos pos, String command, int value, String textData) implements CustomPacketPayload {
+// NEU: Wir haben Optional<UUID> am Anfang hinzugefügt!
+public record ShipCommandPayload(Optional<UUID> shipId, BlockPos pos, String command, int value, String homeName) implements CustomPacketPayload {
 
     public static final Type<ShipCommandPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Alpha.MODID, "ship_command"));
 
-    public static final StreamCodec<FriendlyByteBuf, ShipCommandPayload> STREAM_CODEC = StreamCodec.composite(
+    public static final StreamCodec<ByteBuf, ShipCommandPayload> STREAM_CODEC = StreamCodec.composite(
+            // LÖSUNG 2: Nutze UUIDUtil.STREAM_CODEC
+            ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC), ShipCommandPayload::shipId,
             BlockPos.STREAM_CODEC, ShipCommandPayload::pos,
             ByteBufCodecs.STRING_UTF8, ShipCommandPayload::command,
             ByteBufCodecs.INT, ShipCommandPayload::value,
-            ByteBufCodecs.STRING_UTF8, ShipCommandPayload::textData, // Überträgt unseren Text
+            ByteBufCodecs.STRING_UTF8, ShipCommandPayload::homeName,
             ShipCommandPayload::new
     );
 
@@ -34,59 +42,83 @@ public record ShipCommandPayload(BlockPos pos, String command, int value, String
     public static void handleData(final ShipCommandPayload data, final IPayloadContext context) {
         context.enqueueWork(() -> {
             var player = context.player();
+            if (player == null) return;
             var level = player.level();
             var pos = data.pos();
-            int dist = data.value();
-            String text = data.textData();
 
-            if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {
-                UUID shipId = node.getShipId();
+            // 1. SONDERFALL: SCHIFF ERSTELLEN
+            if (data.command().equals("CREATE")) {
+                if (level.getBlockEntity(pos) instanceof SpaceshipControlBlockEntity blockEntity) {
 
-                // 1. Initialisieren (Darf auch passieren, wenn shipId noch null ist)
-                if (data.command().equals("CREATE")) {
-                    if (node instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity) {
-                        com.peaceman.alpha.ship.SpaceshipManager.createShip(level, pos);
+                    // Schiff erstellen und UUID zurückbekommen (du musst evtl. deine createShip Methode
+                    // anpassen, damit sie die erstelle UUID oder das Spaceship-Objekt zurückgibt)
+                    Spaceship newShip = SpaceshipManager.createShip(level, pos);
+
+                    if (newShip != null) {
+                        // UUID IN DER BLOCK ENTITY SPEICHERN (Das löst den Sync zum Client aus!)
+                        blockEntity.setShipId(newShip.getId());
                     }
                 }
-                // Ab hier MUSS eine UUID existieren
-                else if (shipId != null) {
+                return; // WICHTIG: Danach abbrechen!
+            }
 
-                    // 2. Updaten & Löschen
-                    if (data.command().equals("UPDATE_BLOCKS")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.updateShipBlocks(level, pos, shipId);
-                        return;
-                    }
-                    else if (data.command().equals("DELETE_SHIP")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.deleteShipFromBlock(level, pos, shipId);
-                        return;
-                    }
+            // 2. FÜR ALLE ANDEREN BEFEHLE: UUID NUTZEN
+            if (data.shipId().isEmpty()) {
+                System.out.println("UUID fehlt!");
+                return; // Abbruch, wenn das Paket keine UUID mitgebracht hat
+            }
 
-                    // --- HOMES ---
-                    if (data.command().equals("SAVE_HOME")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.saveHome(level, shipId, text);
-                        return;
-                    }
-                    else if (data.command().equals("TP_HOME")) {
-                        com.peaceman.alpha.ship.SpaceshipManager.teleportToHome(level, shipId, text, player);
-                        return;
-                    }
+            // Wir holen uns das Schiff direkt aus der Liste (ohne Blockabfrage in der Welt!)
+            Spaceship ship = SpaceshipManager.getShip(data.shipId().get());
 
-                    // --- BEWEGUNG ---
+            if (ship == null) {
+                return; // Schiff existiert auf dem Server nicht mehr
+            }
+
+            int dist = data.value();
+            String homeName = data.homeName();
+
+            // 3. AKTION AUSFÜHREN
+            switch (data.command()) {
+                case "SAVE_HOME":
+                    SpaceshipNavigationManager.saveHome(level, ship, homeName);
+                    break;
+                case "TP_HOME":
+                    SpaceshipNavigationManager.teleportToHome(level, ship, homeName, player);
+                    break;
+                case "UPDATE_BLOCKS":
+                    SpaceshipManager.updateShipBlocks(level, ship);
+                    System.out.println("Updating blocks");
+                    break;
+                case "DELETE_SHIP":
+                    SpaceshipManager.deleteShip(level, ship);
+                    break;
+
+                // --- BEWEGUNG ---
+                case "MOVE_UP":
+                    SpaceshipMover.moveShip(level, ship, 0, dist, 0, player);
+                    break;
+                case "MOVE_DOWN":
+                    SpaceshipMover.moveShip(level, ship, 0, -dist, 0, player);
+                    break;
+
+                // Relative Bewegungen gruppiert
+                case "MOVE_FORWARD":
+                case "MOVE_BACKWARD":
+                case "MOVE_RIGHT":
+                case "MOVE_LEFT":
                     Direction forward = player.getDirection();
                     Direction right = forward.getClockWise();
-                    int dx = 0, dy = 0, dz = 0;
+                    int dx = 0, dz = 0;
 
                     switch (data.command()) {
-                        case "MOVE_UP" -> dy = dist;
-                        case "MOVE_DOWN" -> dy = -dist;
                         case "MOVE_FORWARD" -> { dx = forward.getStepX() * dist; dz = forward.getStepZ() * dist; }
                         case "MOVE_BACKWARD" -> { dx = -forward.getStepX() * dist; dz = -forward.getStepZ() * dist; }
                         case "MOVE_RIGHT" -> { dx = right.getStepX() * dist; dz = right.getStepZ() * dist; }
                         case "MOVE_LEFT" -> { dx = -right.getStepX() * dist; dz = -right.getStepZ() * dist; }
                     }
-
-                    com.peaceman.alpha.ship.SpaceshipManager.moveShipInstance(level, shipId, dx, dy, dz, player);
-                }
+                    SpaceshipMover.moveShip(level, ship, dx, 0, dz, player);
+                    break;
             }
         });
     }

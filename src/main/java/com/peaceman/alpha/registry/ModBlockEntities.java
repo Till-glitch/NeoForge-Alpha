@@ -1,7 +1,9 @@
 package com.peaceman.alpha.registry;
 
 import com.peaceman.alpha.Alpha;
-import com.peaceman.alpha.block.SpaceshipControlBlockEntity;
+import com.peaceman.alpha.block.entity.SpaceshipControlBlockEntity;
+import com.peaceman.alpha.block.entity.SpaceshipHelmBlockEntity;
+import com.peaceman.alpha.block.entity.SpaceshipReactorBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -19,13 +21,13 @@ public class ModBlockEntities {
             BLOCK_ENTITIES.register("spaceship_control_be", () ->
                     BlockEntityType.Builder.of(SpaceshipControlBlockEntity::new, ModBlocks.SPACESHIP_CONTROL.get()).build(null));
 
-    public static final Supplier<BlockEntityType<com.peaceman.alpha.block.SpaceshipHelmBlockEntity>> SPACESHIP_HELM_BE =
+    public static final Supplier<BlockEntityType<SpaceshipHelmBlockEntity>> SPACESHIP_HELM_BE =
             BLOCK_ENTITIES.register("spaceship_helm_be", () ->
-                    BlockEntityType.Builder.of(com.peaceman.alpha.block.SpaceshipHelmBlockEntity::new, ModBlocks.SPACESHIP_HELM.get()).build(null));
+                    BlockEntityType.Builder.of(SpaceshipHelmBlockEntity::new, ModBlocks.SPACESHIP_HELM.get()).build(null));
 
-    public static final Supplier<BlockEntityType<com.peaceman.alpha.block.SpaceshipReactorBlockEntity>> SPACESHIP_REACTOR_BE =
+    public static final Supplier<BlockEntityType<SpaceshipReactorBlockEntity>> SPACESHIP_REACTOR_BE =
             BLOCK_ENTITIES.register("spaceship_reactor_be", () ->
-                    BlockEntityType.Builder.of(com.peaceman.alpha.block.SpaceshipReactorBlockEntity::new, ModBlocks.SPACESHIP_REACTOR.get()).build(null));
+                    BlockEntityType.Builder.of(SpaceshipReactorBlockEntity::new, ModBlocks.SPACESHIP_REACTOR.get()).build(null));
 
     public static void register(IEventBus eventBus) {
         BLOCK_ENTITIES.register(eventBus);

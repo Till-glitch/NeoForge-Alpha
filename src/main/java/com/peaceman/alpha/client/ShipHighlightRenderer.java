@@ -27,7 +27,7 @@ public class ShipHighlightRenderer {
             shipBlocks.clear();
         } else {
             // Einschalten
-            shipBlocks = com.peaceman.alpha.ship.SpaceshipManager.scanSpaceship(level, startPos);
+            shipBlocks = com.peaceman.alpha.ship.SpaceshipScanner.scan(level, startPos);
             isHighlightActive = true;
         }
     }

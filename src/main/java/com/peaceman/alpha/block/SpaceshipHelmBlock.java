@@ -1,6 +1,8 @@
 package com.peaceman.alpha.block;
 
+import com.peaceman.alpha.block.entity.SpaceshipHelmBlockEntity;
 import com.peaceman.alpha.client.screen.SpaceshipHelmScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -25,14 +27,15 @@ public class SpaceshipHelmBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        // GUI-Öffnen passiert immer nur auf dem Client!
         if (level.isClientSide()) {
-            openScreen(pos);
+
+            // WICHTIG: Da unser Screen sich die UUID jetzt selbst über die abstrakte
+            // Klasse besorgt, reicht es völlig aus, ihm nur zu sagen, WO er ist (BlockPos).
+            Minecraft.getInstance().setScreen(new SpaceshipHelmScreen(pos));
+
         }
         return InteractionResult.SUCCESS;
-    }
-
-    private void openScreen(BlockPos pos) {
-        net.minecraft.client.Minecraft.getInstance().setScreen(new SpaceshipHelmScreen(pos));
     }
 }
