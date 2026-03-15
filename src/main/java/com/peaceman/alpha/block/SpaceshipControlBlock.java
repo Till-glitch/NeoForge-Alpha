@@ -42,8 +42,7 @@ public class SpaceshipControlBlock extends Block implements EntityBlock {
                 java.util.UUID shipId = node.getShipId(); // Kann null sein, das ist in Ordnung!
 
                 // Jetzt übergeben wir BEIDES an den Screen
-                Minecraft.getInstance().setScreen(new SpaceshipControlScreen(shipId, pos));
-            }
+                com.peaceman.alpha.client.ClientHooks.openControlScreen(shipId, pos);            }
         }
         return InteractionResult.SUCCESS;
     }

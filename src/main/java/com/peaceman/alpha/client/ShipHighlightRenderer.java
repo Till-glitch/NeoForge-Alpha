@@ -13,7 +13,6 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import java.util.HashSet;
 import java.util.Set;
 
-@EventBusSubscriber(modid = Alpha.MODID, value = Dist.CLIENT)
 public class ShipHighlightRenderer {
 
     public static boolean isHighlightActive = false;

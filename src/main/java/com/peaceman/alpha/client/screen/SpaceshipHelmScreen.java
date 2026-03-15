@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
+
 public class SpaceshipHelmScreen extends AbstractSpaceshipScreen {
 
     private EditBox distanceInput;

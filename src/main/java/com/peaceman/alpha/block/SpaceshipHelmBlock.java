@@ -28,14 +28,14 @@ public class SpaceshipHelmBlock extends Block implements EntityBlock {
 
     @Override
     public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        // GUI-Öffnen passiert immer nur auf dem Client!
+
+        // 1. Wir prüfen die Logik: Sind wir der Client?
         if (level.isClientSide()) {
-
-            // WICHTIG: Da unser Screen sich die UUID jetzt selbst über die abstrakte
-            // Klasse besorgt, reicht es völlig aus, ihm nur zu sagen, WO er ist (BlockPos).
-            Minecraft.getInstance().setScreen(new SpaceshipHelmScreen(pos));
-
+            // 2. Wir rufen unsere Puffer-Klasse auf.
+            // Weil wir den vollen Pfad (com.peaceman...) angeben, sparen wir uns den Import oben.
+            com.peaceman.alpha.client.ClientHooks.openHelmScreen(pos);
         }
+
         return InteractionResult.SUCCESS;
     }
 }
