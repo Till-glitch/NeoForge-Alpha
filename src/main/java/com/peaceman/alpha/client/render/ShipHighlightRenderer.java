@@ -1,13 +1,10 @@
-package com.peaceman.alpha.client;
+package com.peaceman.alpha.client.render;
 
-import com.peaceman.alpha.Alpha;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 import java.util.HashSet;

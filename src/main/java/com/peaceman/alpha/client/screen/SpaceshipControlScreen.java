@@ -1,6 +1,7 @@
 package com.peaceman.alpha.client.screen;
 
 import com.peaceman.alpha.block.entity.SpaceshipControlBlockEntity;
+import com.peaceman.alpha.client.render.ShipHighlightRenderer;
 import com.peaceman.alpha.network.ShipCommandPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -73,7 +74,7 @@ public class SpaceshipControlScreen extends Screen {
 
         // 4. Markierung An/Aus (Braucht kein Update, da rein Client-seitig)
         this.addRenderableWidget(Button.builder(Component.literal("Markierung An/Aus"), button -> {
-            com.peaceman.alpha.client.ShipHighlightRenderer.toggleHighlight(this.minecraft.level, this.blockPos);
+            ShipHighlightRenderer.toggleHighlight(this.minecraft.level, this.blockPos);
         }).bounds(btnLeft, centerY + 45, btnWidth, btnHeight).build());
     }
 

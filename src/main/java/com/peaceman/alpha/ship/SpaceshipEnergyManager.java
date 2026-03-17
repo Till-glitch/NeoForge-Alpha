@@ -37,28 +37,37 @@ public class SpaceshipEnergyManager {
 
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof SpaceshipReactorBlockEntity reactor) {
-                // Das 'false' am Ende bedeutet: Energie WIRKLICH abziehen, nicht nur simulieren
                 int extracted = reactor.getEnergyStorage().extractEnergy(remainingCost, false);
                 remainingCost -= extracted;
             }
         }
     }
 
-    // 4. Die "All-in-One" Methode für den Flug (Gibt true zurück, wenn erfolgreich)
-    public static boolean tryConsumeFlightEnergy(Level level, Spaceship ship, int dx, int dy, int dz, Player player) {
-        int cost = calculateMovementCost(ship, dx, dy, dz);
-        int available = getTotalAvailableEnergy(level, ship);
-
-        if (available < cost) {
-            if (player != null) {
-                player.displayClientMessage(
-                        Component.literal("§cNicht genug Energie! §7Benötigt: " + cost + " FE | Vorhanden: " + available + " FE"), true);
-            }
-            return false; // Flug abbrechen
+    // 4. Die allgemeine Basis-Methode für ALLES (Schilde, Waffen, Flug)
+    public static boolean tryConsumeEnergyAmount(Level level, Spaceship ship, int amount) {
+        if (getTotalAvailableEnergy(level, ship) < amount) {
+            return false; // Nicht genug Energie da
         }
 
-        // Genug Energie da! Jetzt ziehen wir sie ab.
-        consumeEnergy(level, ship, cost);
-        return true; // Flug erlaubt!
+        // Genug Energie vorhanden -> Abziehen!
+        consumeEnergy(level, ship, amount);
+        return true;
+    }
+
+    // 5. Die spezielle Methode für den Flug (nutzt jetzt die Basis-Methode!)
+    public static boolean tryConsumeFlightEnergy(Level level, Spaceship ship, int dx, int dy, int dz, Player player) {
+        int cost = calculateMovementCost(ship, dx, dy, dz);
+
+        // Wir lassen einfach unsere allgemeine Methode die harte Arbeit machen!
+        boolean success = tryConsumeEnergyAmount(level, ship, cost);
+
+        // Wenn die Basis-Methode 'false' liefert UND ein Spieler da ist, geben wir eine Warnung aus
+        if (!success && player != null) {
+            int available = getTotalAvailableEnergy(level, ship);
+            player.displayClientMessage(
+                    Component.literal("§cNicht genug Energie! §7Benötigt: " + cost + " FE | Vorhanden: " + available + " FE"), true);
+        }
+
+        return success;
     }
 }
