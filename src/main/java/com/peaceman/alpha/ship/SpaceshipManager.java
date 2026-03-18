@@ -65,7 +65,7 @@ public class SpaceshipManager {
         if (ship != null) {
             // Der Manager holt sich die Startposition direkt aus dem Schiffsobjekt!
             Set<BlockPos> newBlocks = SpaceshipScanner.scan(level, ship.getControllerPos());
-            ship.setBlocks(newBlocks);
+            ship.setBlocks(newBlocks, level);
 
             for (BlockPos pos : newBlocks) {
                 if (level.getBlockEntity(pos) instanceof com.peaceman.alpha.block.ISpaceshipNode node) {

@@ -9,11 +9,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class ShipSavedData extends SavedData {
 
@@ -24,27 +20,38 @@ public class ShipSavedData extends SavedData {
         for (Spaceship ship : SpaceshipManager.ACTIVE_SHIPS.values()) {
             CompoundTag shipTag = new CompoundTag();
 
-            // 1. UUID abspeichern
+            // 1. UUID & Controller
             shipTag.putUUID("ID", ship.getId());
-
-            // 2. Kontrollblock abspeichern
             BlockPos ctrl = ship.getControllerPos();
             shipTag.putIntArray("Controller", new int[]{ctrl.getX(), ctrl.getY(), ctrl.getZ()});
 
-            // 3. Schiffsblöcke abspeichern
+            // 2. Schiffsblöcke
             ListTag blockList = new ListTag();
             for (BlockPos block : ship.getBlocks()) {
                 blockList.add(new IntArrayTag(new int[]{block.getX(), block.getY(), block.getZ()}));
             }
             shipTag.put("Blocks", blockList);
 
-            // 4. Homes abspeichern
+            // 3. Homes
             CompoundTag homesTag = new CompoundTag();
             for (Map.Entry<String, BlockPos> home : ship.getHomes().entrySet()) {
                 BlockPos hp = home.getValue();
                 homesTag.putIntArray(home.getKey(), new int[]{hp.getX(), hp.getY(), hp.getZ()});
             }
             shipTag.put("Homes", homesTag);
+
+            // --- NEU: 4. Reaktoren und Schilde speichern ---
+            ListTag reactorList = new ListTag();
+            for (BlockPos pos : ship.getReactors()) {
+                reactorList.add(new IntArrayTag(new int[]{pos.getX(), pos.getY(), pos.getZ()}));
+            }
+            shipTag.put("Reactors", reactorList);
+
+            ListTag shieldList = new ListTag();
+            for (BlockPos pos : ship.getShields()) {
+                shieldList.add(new IntArrayTag(new int[]{pos.getX(), pos.getY(), pos.getZ()}));
+            }
+            shipTag.put("Shields", shieldList);
 
             shipList.add(shipTag);
         }
@@ -80,7 +87,27 @@ public class ShipSavedData extends SavedData {
                 homes.put(key, new BlockPos(hpArray[0], hpArray[1], hpArray[2]));
             }
 
-            Spaceship loadedShip = new Spaceship(id, ctrlPos, blocks, homes);
+            // --- NEU: Reaktoren und Schilde laden ---
+            List<BlockPos> loadedReactors = new ArrayList<>();
+            if (shipTag.contains("Reactors")) {
+                ListTag rList = shipTag.getList("Reactors", Tag.TAG_INT_ARRAY);
+                for (int j = 0; j < rList.size(); j++) {
+                    int[] arr = rList.getIntArray(j);
+                    loadedReactors.add(new BlockPos(arr[0], arr[1], arr[2]));
+                }
+            }
+
+            List<BlockPos> loadedShields = new ArrayList<>();
+            if (shipTag.contains("Shields")) {
+                ListTag sList = shipTag.getList("Shields", Tag.TAG_INT_ARRAY);
+                for (int j = 0; j < sList.size(); j++) {
+                    int[] arr = sList.getIntArray(j);
+                    loadedShields.add(new BlockPos(arr[0], arr[1], arr[2]));
+                }
+            }
+
+            // Das neue Schiff mit ALLEN Daten erstellen
+            Spaceship loadedShip = new Spaceship(id, ctrlPos, blocks, homes, loadedReactors, loadedShields);
             SpaceshipManager.ACTIVE_SHIPS.put(id, loadedShip);
         }
         return data;

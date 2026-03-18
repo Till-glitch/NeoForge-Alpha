@@ -19,7 +19,7 @@ public class SpaceshipEnergyManager {
     // 2. Sucht alle Reaktoren im Schiff und bündelt die verfügbare Energie
     public static int getTotalAvailableEnergy(Level level, Spaceship ship) {
         int totalEnergy = 0;
-        for (BlockPos pos : ship.getBlocks()) {
+        for (BlockPos pos : ship.getReactors()) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof SpaceshipReactorBlockEntity reactor) {
                 totalEnergy += reactor.getEnergyStorage().getEnergyStored();
@@ -32,7 +32,7 @@ public class SpaceshipEnergyManager {
     public static void consumeEnergy(Level level, Spaceship ship, int amountToExtract) {
         int remainingCost = amountToExtract;
 
-        for (BlockPos pos : ship.getBlocks()) {
+        for (BlockPos pos : ship.getReactors()) {
             if (remainingCost <= 0) break; // Fertig, wenn alle Kosten gedeckt sind
 
             BlockEntity be = level.getBlockEntity(pos);

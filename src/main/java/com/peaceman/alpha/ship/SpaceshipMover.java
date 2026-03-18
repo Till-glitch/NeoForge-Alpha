@@ -107,7 +107,7 @@ public class SpaceshipMover {
             placeBlockFromSnapshot(level, entry, dx, dy, dz, ship.getId());
         }
 
-        ship.setBlocks(newShipBlocks);
+        ship.setBlocks(newShipBlocks, level);
 
         // --- 8. ENTITIES TELEPORTIEREN ---
         for (Entity entity : entitiesToMove) {
