@@ -26,7 +26,9 @@ public class ModCreativeTabs {
                                                                           // noch drin
                         output.accept(ModItems.SPACESHIP_HELM_ITEM.get());
                         output.accept(ModItems.SPACESHIP_REACTOR_ITEM.get());
+                        output.accept(ModItems.SPACESHIP_SHIELD_ITEM.get());
                         output.accept(ModItems.BACKFLIP_TOOL.get());
+
                     }).build());
 
     public static void register(IEventBus eventBus) {
