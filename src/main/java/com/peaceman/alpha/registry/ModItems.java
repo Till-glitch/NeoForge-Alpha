@@ -18,6 +18,8 @@ public class ModItems {
             ModBlocks.SPACESHIP_HELM);
     public static final DeferredItem<BlockItem> SPACESHIP_REACTOR_ITEM = ITEMS.registerSimpleBlockItem("spaceship_reactor",
             ModBlocks.SPACESHIP_REACTOR);
+    public static final DeferredItem<BlockItem> SPACESHIP_SHIELD_ITEM = ITEMS.registerSimpleBlockItem("spaceship_shield",
+            ModBlocks.SPACESHIP_SHIELD);
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
