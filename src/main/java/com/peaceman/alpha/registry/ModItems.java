@@ -1,7 +1,9 @@
 package com.peaceman.alpha.registry;
 
 import com.peaceman.alpha.Alpha;
+import com.peaceman.alpha.item.BackflipToolItem;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -20,6 +22,12 @@ public class ModItems {
             ModBlocks.SPACESHIP_REACTOR);
     public static final DeferredItem<BlockItem> SPACESHIP_SHIELD_ITEM = ITEMS.registerSimpleBlockItem("spaceship_shield",
             ModBlocks.SPACESHIP_SHIELD);
+
+    // Items
+    public static final DeferredItem<Item> BACKFLIP_TOOL = ITEMS.register("backflip_tool",
+            () -> new BackflipToolItem(new Item.Properties()
+                    .durability(250)
+                    .attributes(BackflipToolItem.createAttributes())));
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
