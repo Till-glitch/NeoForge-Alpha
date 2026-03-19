@@ -107,7 +107,36 @@ public class SpaceshipMover {
             placeBlockFromSnapshot(level, entry, dx, dy, dz, ship.getId());
         }
 
-        ship.setBlocks(newShipBlocks, level);
+        // =====================================================================
+        // --- 7.5 RAM-DATEN UPDATEN (Statt setBlocks(newShipBlocks, level)) ---
+        // =====================================================================
+
+        // 1. Die normalen Blöcke setzen
+        ship.setBlocksRaw(newShipBlocks);
+
+        // 2. Reaktoren verschieben
+        List<BlockPos> newReactors = new ArrayList<>(ship.getReactors().size());
+        for (BlockPos pos : ship.getReactors()) {
+            newReactors.add(pos.offset(dx, dy, dz));
+        }
+        ship.setReactors(newReactors);
+
+        // 3. Schilde verschieben
+        List<BlockPos> newShields = new ArrayList<>(ship.getShields().size());
+        for (BlockPos pos : ship.getShields()) {
+            newShields.add(pos.offset(dx, dy, dz));
+        }
+        ship.setShields(newShields);
+
+        // 4. Schildblase (Hitbox) verschieben
+        if (ship.getShieldBubble() != null && !ship.getShieldBubble().isEmpty()) {
+            Set<BlockPos> newBubble = new HashSet<>(ship.getShieldBubble().size());
+            for (BlockPos pos : ship.getShieldBubble()) {
+                newBubble.add(pos.offset(dx, dy, dz));
+            }
+            ship.setShieldBubble(newBubble);
+        }
+        // =====================================================================
 
         // --- 8. ENTITIES TELEPORTIEREN ---
         for (Entity entity : entitiesToMove) {
