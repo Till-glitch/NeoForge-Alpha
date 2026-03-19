@@ -13,13 +13,23 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import org.jetbrains.annotations.Nullable;
 
 public class SpaceshipReactorBlock extends BaseEntityBlock  {
     public static final com.mojang.serialization.MapCodec<SpaceshipReactorBlock> CODEC = simpleCodec(SpaceshipReactorBlock::new);
+    public static final BooleanProperty UP = BooleanProperty.create("up");
+    public static final BooleanProperty DOWN = BooleanProperty.create("down");
     public SpaceshipReactorBlock(Properties properties) {
         super(properties);
+        this.registerDefaultState(this.stateDefinition.any()
+                .setValue(UP, false)
+                .setValue(DOWN, false));
     }
 
     @Override
@@ -30,6 +40,32 @@ public class SpaceshipReactorBlock extends BaseEntityBlock  {
     @Override
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        BlockPos pos = context.getClickedPos();
+        Level level = context.getLevel();
+        return this.defaultBlockState()
+                .setValue(UP, level.getBlockState(pos.above()).getBlock() == this)
+                .setValue(DOWN, level.getBlockState(pos.below()).getBlock() == this);
+    }
+
+    @Override
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
+                                  LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
+        if (direction == Direction.UP) {
+            return state.setValue(UP, neighborState.getBlock() == this);
+        }
+        if (direction == Direction.DOWN) {
+            return state.setValue(DOWN, neighborState.getBlock() == this);
+        }
+        return super.updateShape(state, direction, neighborState, level, pos, neighborPos);
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(UP, DOWN);
     }
 
     @Nullable

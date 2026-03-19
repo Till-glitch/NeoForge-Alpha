@@ -1,0 +1,11 @@
+﻿{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "peaceman_alpha:block/example_block_bottom",
+    "up": "peaceman_alpha:block/example_block_top",
+    "north": "peaceman_alpha:block/example_block_side",
+    "south": "peaceman_alpha:block/example_block_side",
+    "east": "peaceman_alpha:block/example_block_side",
+    "west": "peaceman_alpha:block/example_block_side"
+  }
+}

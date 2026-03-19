@@ -1,0 +1,5 @@
+﻿{
+  "variants": {
+    "": { "model": "peaceman_alpha:block/example_block" }
+  }
+}

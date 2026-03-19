@@ -1,0 +1,21 @@
+﻿{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "side": "peaceman_alpha:block/spaceship_reactor_side_top",
+    "up": "peaceman_alpha:block/spaceship_reactor_top",
+    "down": "peaceman_alpha:block/spaceship_reactor_bottom"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "faces": {
+        "up": { "texture": "#up", "cullface": "up" },
+        "north": { "texture": "#side", "cullface": "north" },
+        "south": { "texture": "#side", "cullface": "south" },
+        "east": { "texture": "#side", "cullface": "east" },
+        "west": { "texture": "#side", "cullface": "west" }
+      }
+    }
+  ]
+}

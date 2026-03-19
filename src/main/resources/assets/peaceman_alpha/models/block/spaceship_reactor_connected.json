@@ -1,0 +1,11 @@
+﻿{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "peaceman_alpha:block/spaceship_reactor_bottom",
+    "up": "peaceman_alpha:block/spaceship_reactor_top",
+    "north": "peaceman_alpha:block/spaceship_reactor_side_connected",
+    "south": "peaceman_alpha:block/spaceship_reactor_side_connected",
+    "east": "peaceman_alpha:block/spaceship_reactor_side_connected",
+    "west": "peaceman_alpha:block/spaceship_reactor_side_connected"
+  }
+}

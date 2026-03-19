@@ -1,0 +1,8 @@
+﻿{
+  "variants": {
+    "up=false,down=false": { "model": "peaceman_alpha:block/spaceship_reactor" },
+    "up=true,down=false": { "model": "peaceman_alpha:block/spaceship_reactor_bottom" },
+    "up=false,down=true": { "model": "peaceman_alpha:block/spaceship_reactor_top" },
+    "up=true,down=true": { "model": "peaceman_alpha:block/spaceship_reactor_middle" }
+  }
+}
