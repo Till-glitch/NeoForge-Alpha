@@ -1,6 +1,6 @@
 package com.peaceman.alpha.menu;
 
-import com.peaceman.alpha.block.SpaceshipReactorBlockEntity;
+import com.peaceman.alpha.block.entity.SpaceshipReactorBlockEntity;
 import com.peaceman.alpha.registry.ModMenuTypes;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;

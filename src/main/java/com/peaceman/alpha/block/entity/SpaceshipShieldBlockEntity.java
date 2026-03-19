@@ -1,5 +1,6 @@
-package com.peaceman.alpha.block;
+package com.peaceman.alpha.block.entity;
 
+import com.peaceman.alpha.block.ISpaceshipNode;
 import com.peaceman.alpha.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -9,23 +10,23 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.UUID;
 
-public class SpaceshipHelmBlockEntity extends BlockEntity implements ISpaceshipNode {
+public class SpaceshipShieldBlockEntity extends BlockEntity implements ISpaceshipNode {
 
-    private UUID shipId;
+    private UUID shipId = null;
 
-    public SpaceshipHelmBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.SPACESHIP_HELM_BE.get(), pos, state);
+    public SpaceshipShieldBlockEntity(BlockPos pos, BlockState state) {
+        super(ModBlockEntities.SPACESHIP_SHIELD_BE.get(), pos, state);
     }
 
     @Override
     public UUID getShipId() {
-        return shipId;
+        return this.shipId;
     }
 
     @Override
     public void setShipId(UUID shipId) {
         this.shipId = shipId;
-        setChanged();
+        this.setChanged();
     }
 
     @Override

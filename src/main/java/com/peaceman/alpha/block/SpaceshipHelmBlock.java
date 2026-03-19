@@ -1,6 +1,8 @@
 package com.peaceman.alpha.block;
 
+import com.peaceman.alpha.block.entity.SpaceshipHelmBlockEntity;
 import com.peaceman.alpha.client.screen.SpaceshipHelmScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -25,14 +27,15 @@ public class SpaceshipHelmBlock extends Block implements EntityBlock {
     }
 
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        if (level.isClientSide()) {
-            openScreen(pos);
-        }
-        return InteractionResult.SUCCESS;
-    }
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
 
-    private void openScreen(BlockPos pos) {
-        net.minecraft.client.Minecraft.getInstance().setScreen(new SpaceshipHelmScreen(pos));
+        // 1. Wir prüfen die Logik: Sind wir der Client?
+        if (level.isClientSide()) {
+            // 2. Wir rufen unsere Puffer-Klasse auf.
+            // Weil wir den vollen Pfad (com.peaceman...) angeben, sparen wir uns den Import oben.
+            com.peaceman.alpha.client.ClientHooks.openHelmScreen(pos);
+        }
+
+        return InteractionResult.SUCCESS;
     }
 }

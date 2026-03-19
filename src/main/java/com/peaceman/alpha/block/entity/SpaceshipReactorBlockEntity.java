@@ -1,4 +1,4 @@
-package com.peaceman.alpha.block;
+package com.peaceman.alpha.block.entity;
 
 import com.peaceman.alpha.menu.SpaceshipReactorMenu;
 import net.minecraft.core.BlockPos;
@@ -10,29 +10,20 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
-
-public class SpaceshipReactorBlockEntity extends BlockEntity implements MenuProvider, ISpaceshipNode {
-
-    // --- ISpaceshipNode Daten ---
-    private UUID shipId;
+// 1. NEU: Erbt von AbstractSpaceshipNodeBlockEntity (welches bereits ISpaceshipNode implementiert!)
+public class SpaceshipReactorBlockEntity extends AbstractSpaceshipNodeBlockEntity implements MenuProvider {
 
     // Kapazität: 1.000.000 FE, maxReceive: 10.000 FE, maxExtract: 10.000 FE
-    // Wir überschreiben die Methoden, um setChanged() aufzurufen!
     private final EnergyStorage energyStorage = new EnergyStorage(1000000, 10000, 10000) {
         @Override
         public int receiveEnergy(int maxReceive, boolean simulate) {
             int received = super.receiveEnergy(maxReceive, simulate);
             if (received > 0 && !simulate) {
                 setChanged(); // WICHTIG: Teilt Minecraft mit, dass die Energie auf die Festplatte muss!
-
-                // Optional: Auskommentieren, wenn der Block von außen (z.B. durch Waila/The One Probe) updaten soll
-                // if (level != null) level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
             }
             return received;
         }
@@ -42,9 +33,6 @@ public class SpaceshipReactorBlockEntity extends BlockEntity implements MenuProv
             int extracted = super.extractEnergy(maxExtract, simulate);
             if (extracted > 0 && !simulate) {
                 setChanged(); // WICHTIG: Sichert den neuen Stand nach Entnahme!
-
-                // Optional: Auskommentieren, wenn der Block von außen updaten soll
-                // if (level != null) level.sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), 3);
             }
             return extracted;
         }
@@ -73,19 +61,8 @@ public class SpaceshipReactorBlockEntity extends BlockEntity implements MenuProv
     };
 
     public SpaceshipReactorBlockEntity(BlockPos pos, BlockState state) {
+        // 2. NEU: Ruft den Konstruktor der abstrakten Elternklasse auf
         super(com.peaceman.alpha.registry.ModBlockEntities.SPACESHIP_REACTOR_BE.get(), pos, state);
-    }
-
-    // --- ISpaceshipNode Methoden ---
-    @Override
-    public UUID getShipId() {
-        return shipId;
-    }
-
-    @Override
-    public void setShipId(UUID shipId) {
-        this.shipId = shipId;
-        setChanged(); // Auch hier muss gespeichert werden, wenn das Schiff sich ändert
     }
 
     // --- MenuProvider Methoden ---
@@ -107,12 +84,8 @@ public class SpaceshipReactorBlockEntity extends BlockEntity implements MenuProv
     // --- NBT Daten Speichern & Laden ---
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        // 3. WICHTIG: super.saveAdditional speichert automatisch die UUID für uns!
         super.saveAdditional(tag, registries);
-
-        // ShipId speichern
-        if (this.shipId != null) {
-            tag.putUUID("ShipId", this.shipId);
-        }
 
         // Energie SICHER speichern (Offizieller NeoForge-Weg)
         tag.put("Energy", energyStorage.serializeNBT(registries));
@@ -120,30 +93,12 @@ public class SpaceshipReactorBlockEntity extends BlockEntity implements MenuProv
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        // 4. WICHTIG: super.loadAdditional lädt automatisch die UUID!
         super.loadAdditional(tag, registries);
-
-        // ShipId laden
-        if (tag.hasUUID("ShipId")) {
-            this.shipId = tag.getUUID("ShipId");
-        }
 
         // Energie SICHER laden (Offizieller NeoForge-Weg)
         if (tag.contains("Energy")) {
             energyStorage.deserializeNBT(registries, tag.get("Energy"));
         }
-    }
-
-    // --- CLIENT SYNC (Für Mods, die NBT von außen lesen wollen) ---
-    @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = super.getUpdateTag(registries);
-        tag.put("Energy", energyStorage.serializeNBT(registries));
-        return tag;
-    }
-
-    @Override
-    @Nullable
-    public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket() {
-        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
     }
 }

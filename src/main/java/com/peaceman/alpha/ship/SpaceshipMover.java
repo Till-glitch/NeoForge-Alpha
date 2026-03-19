@@ -1,5 +1,6 @@
 package com.peaceman.alpha.ship;
 
+import com.peaceman.alpha.block.entity.SpaceshipControlBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -24,7 +25,7 @@ public class SpaceshipMover {
         Set<BlockPos> shipBlocks = ship.getBlocks();
 
         // --- 1. ENERGIE PRÜFEN (Ausgelagert in SpaceshipEnergyManager) ---
-        if (!SpaceshipEnergyManager.tryConsumeFlightEnergy(level, shipBlocks, dx, dy, dz, player)) {
+        if (!SpaceshipEnergyManager.tryConsumeFlightEnergy(level, ship, dx, dy, dz, player)) {
             return; // Abbruch, wenn wir nicht fliegen dürfen!
         }
 
@@ -81,7 +82,7 @@ public class SpaceshipMover {
         }
 
         // --- 6. CONTROLLER UMZIEHEN ---
-        if (level.getBlockEntity(startPos) instanceof com.peaceman.alpha.block.SpaceshipControlBlockEntity be) {
+        if (level.getBlockEntity(startPos) instanceof SpaceshipControlBlockEntity be) {
             be.setShipId(null);
         }
         BlockPos newStartPos = startPos.offset(dx, dy, dz);
@@ -106,7 +107,7 @@ public class SpaceshipMover {
             placeBlockFromSnapshot(level, entry, dx, dy, dz, ship.getId());
         }
 
-        ship.setBlocks(newShipBlocks);
+        ship.setBlocks(newShipBlocks, level);
 
         // --- 8. ENTITIES TELEPORTIEREN ---
         for (Entity entity : entitiesToMove) {

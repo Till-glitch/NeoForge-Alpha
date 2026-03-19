@@ -1,19 +1,15 @@
-package com.peaceman.alpha.client;
+package com.peaceman.alpha.client.render;
 
-import com.peaceman.alpha.Alpha;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@EventBusSubscriber(modid = Alpha.MODID, value = Dist.CLIENT)
 public class ShipHighlightRenderer {
 
     public static boolean isHighlightActive = false;
@@ -27,7 +23,7 @@ public class ShipHighlightRenderer {
             shipBlocks.clear();
         } else {
             // Einschalten
-            shipBlocks = com.peaceman.alpha.ship.SpaceshipManager.scanSpaceship(level, startPos);
+            shipBlocks = com.peaceman.alpha.ship.SpaceshipScanner.scan(level, startPos);
             isHighlightActive = true;
         }
     }
