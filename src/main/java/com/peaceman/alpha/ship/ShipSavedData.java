@@ -40,7 +40,7 @@ public class ShipSavedData extends SavedData {
             }
             shipTag.put("Homes", homesTag);
 
-            // --- NEU: 4. Reaktoren und Schilde speichern ---
+            // 4. Reaktoren und Schilde speichern
             ListTag reactorList = new ListTag();
             for (BlockPos pos : ship.getReactors()) {
                 reactorList.add(new IntArrayTag(new int[]{pos.getX(), pos.getY(), pos.getZ()}));
@@ -52,6 +52,15 @@ public class ShipSavedData extends SavedData {
                 shieldList.add(new IntArrayTag(new int[]{pos.getX(), pos.getY(), pos.getZ()}));
             }
             shipTag.put("Shields", shieldList);
+
+            // --- NEU: 5. Die vorberechnete Schildblase speichern ---
+            ListTag bubbleList = new ListTag();
+            if (ship.getShieldBubble() != null) {
+                for (BlockPos pos : ship.getShieldBubble()) {
+                    bubbleList.add(new IntArrayTag(new int[]{pos.getX(), pos.getY(), pos.getZ()}));
+                }
+            }
+            shipTag.put("ShieldBubble", bubbleList);
 
             shipList.add(shipTag);
         }
@@ -87,7 +96,7 @@ public class ShipSavedData extends SavedData {
                 homes.put(key, new BlockPos(hpArray[0], hpArray[1], hpArray[2]));
             }
 
-            // --- NEU: Reaktoren und Schilde laden ---
+            // Reaktoren und Schilde laden
             List<BlockPos> loadedReactors = new ArrayList<>();
             if (shipTag.contains("Reactors")) {
                 ListTag rList = shipTag.getList("Reactors", Tag.TAG_INT_ARRAY);
@@ -106,8 +115,22 @@ public class ShipSavedData extends SavedData {
                 }
             }
 
-            // Das neue Schiff mit ALLEN Daten erstellen
+            // --- NEU: Schildblase laden ---
+            Set<BlockPos> loadedBubble = new HashSet<>();
+            if (shipTag.contains("ShieldBubble")) {
+                ListTag bList = shipTag.getList("ShieldBubble", Tag.TAG_INT_ARRAY);
+                for (int j = 0; j < bList.size(); j++) {
+                    int[] arr = bList.getIntArray(j);
+                    loadedBubble.add(new BlockPos(arr[0], arr[1], arr[2]));
+                }
+            }
+
+            // Das neue Schiff erstellen
             Spaceship loadedShip = new Spaceship(id, ctrlPos, blocks, homes, loadedReactors, loadedShields);
+
+            // Die vorberechnete Blase einfach über den Setter injizieren!
+            loadedShip.setShieldBubble(loadedBubble);
+
             SpaceshipManager.ACTIVE_SHIPS.put(id, loadedShip);
         }
         return data;
